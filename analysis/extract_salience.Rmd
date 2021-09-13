@@ -1,0 +1,312 @@
+---
+title: "salience_extraction"
+author: "Nico Bast"
+date: "17 3 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(python.reticulate = FALSE) #execute pyhton code - not required to execute, thus set false
+
+```
+
+use of [OpenCV](https://opencv.org/releases/) in [Python 3.8](https://www.python.org/downloads/release/python-380/).
+Open CV includes a salience API that is further described [here](https://www.pyimagesearch.com/2018/07/16/opencv-saliency-detection/).
+
+We apply the following salience algorithms:
+
+- perceptual salience --> [spectral residual approach](https://ieeexplore.ieee.org/abstract/document/4270292) --> cv2.saliency.StaticSaliencySpectralResidual_create()
+- motion salience --> [Gaussian mixture model](https://ieeexplore.ieee.org/abstract/document/1333992) --> cv2.createBackgroundSubtractorMOG2()
+
+
+# install OpenCV in Python 3.8
+
+execute in CMD
+
+```{cmd install_open_CV, eval=F}
+
+
+### 1 INSTALL: openCV to python
+### contrib also contains additional modules of openCV including the salience API
+
+pip install opencv-contrib-python
+
+### 2 SETUP:
+
+py # change to python and check version
+import.cv2
+cv2.__version__
+cv.saliency #check whether saliency module of opencv is installed
+
+#vid_path = "C:/Users/Nico/PowerFolders/Paper_AIMS-LEAP_ETcore/stimuli/nonhuman/" # define folder with videos in a directory in split_video_to_images.py
+
+```
+
+# perceptual salience - OpenCV
+
+execute as BAT file
+
+```{r bat_file_salience, eval=F}
+
+@echo off
+
+ECHO Identify STATIC SALIENCE in VIDEO files:
+ECHO INFO: splits video into images that are separately analyzed
+ECHO -----------------------------------------------------
+
+REM set /p path="Enter Path with Video files: "
+set path="C:\Users\Nico\PowerFolders\data_LEAP\stimuli\nonhuman"
+set /p name="Enter Name of the Video: "
+
+REM e.g. path = "C:/Users/Nico/PowerFolders/Paper_AIMS-LEAP_ETcore/stimuli/nonhuman"
+REM e.g. path = "birds"
+
+REM independent of environment variables (full path files)
+
+ECHO SPLITTING VIDEO...
+"C:\Python38\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\split_video_to_images.py" %name% %path%
+ECHO ...DONE
+
+ECHO IDENTIFY SALIENCE...
+"C:\Python38\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\static_salience_in_video.py" %name%
+ECHO ...DONE
+
+REM with environment variables
+REM start "split_video" python split_video_to_images.py
+REM start "salience_detection" python static_salience_in_video.py %name%
+
+PAUSE
+
+```
+
+## split video to images
+
+```{python, eval=F}
+
+import cv2
+import sys
+import os
+
+vid_name = sys.argv[1]
+vid_path = sys.argv[2]
+#vid_name = "coralreef"
+#vid_path = "C:/Users/Nico/PowerFolders/Paper_AIMS-LEAP_ETcore/stimuli/nonhuman"
+
+#get the path of the vid_name in vid_path (search for the video)
+for path in os.listdir(vid_path):
+    if vid_name in path:
+        full_path = os.path.join(vid_path, path)
+
+
+output_folder = "stimuli_pics"
+if not os.path.exists(output_folder):
+    os.mkdir(output_folder)
+os.chdir(output_folder)
+
+#create folder for pics if not existing
+if not os.path.exists(vid_name):
+    os.mkdir(vid_name)
+os.chdir(vid_name)
+
+#loop to create pics from vid
+cap = cv2.VideoCapture(full_path)
+i=0
+while(cap.isOpened()):
+    ret, frame = cap.read()
+    if ret == False:
+        break
+    cv2.imwrite(vid_name+str(i)+'.jpg',frame)
+    print(vid_name+str(i)+'.jpg')
+    i+=1
+
+cap.release()
+cv2.destroyAllWindows()
+
+```
+
+## perceptual salience extraction
+
+script named "static_salience_in_video.py"
+
+```{python, eval=F}
+
+import cv2
+import sys
+import os
+
+stimulus_name = sys.argv[1]
+input_folder = "stimuli_pics"
+output_folder = "stimuli_salience"
+
+#create stimulus-specific output folder if it does not exist
+if not os.path.exists(os.path.join(output_folder,stimulus_name)):
+    os.mkdir(os.path.join(output_folder,stimulus_name))
+
+#get and sort input image data - see also VidToImg.py
+name_images = os.listdir(os.path.join(input_folder,stimulus_name)) #get individuals images of video file
+name_images.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) #sort alphanumerically
+n_images = len(name_images)
+
+# initialize OpenCV's static saliency spectral residual detector and
+saliency = cv2.saliency.StaticSaliencySpectralResidual_create()
+
+#### saliency model after
+# Hou, X., & Zhang, L. (2007, June). Saliency detection: A spectral residual approach. In 2007 IEEE Conference on computer vision and pattern recognition (pp. 1-8). Ieee.
+
+#loop over images
+i=0
+while(i<n_images):
+    image = cv2.imread(os.path.join(input_folder,stimulus_name,name_images[i])) #read image
+    (success, saliencyMap) = saliency.computeSaliency(image) # compute the saliency map
+    saliencyMap = (saliencyMap * 255).astype("uint8") #changes 0-1 values to 255 grayscale
+    cv2.imwrite(os.path.join(output_folder,stimulus_name,stimulus_name+"_salience"+str(i)+".jpg"), saliencyMap) #write salience map
+    print(os.path.join(output_folder,stimulus_name,stimulus_name+"_salience"+str(i)+".jpg")) #print processed salience map
+
+    #show image
+    #cv2.imshow("Image", image)
+    #cv2.imshow("Salience", saliencyMap)
+    #cv2.waitKey(20)
+
+    i+=1
+
+```
+
+
+
+# motion salience - OpenCV
+
+execute as BAT file
+
+```{r bat_file_motion_salience, eval=F}
+
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe"@echo off
+
+ECHO Identify MOTION SALIENCE of SCENES:
+ECHO INFO: scenes are previously split by split_images_to_scenes.py...
+ECHO -----------------------------------------------------
+
+REM independent of environment variables (full path files)
+REM path_to_python = where py
+
+ECHO IDENTIFY MOTION SALIENCE...
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" 50faces
+ECHO 50faces DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" artist
+ECHO artist DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" birds
+ECHO birds DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" coralreef
+ECHO coralreef DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" dollhouse
+ECHO dollhouse DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" flowersstars
+ECHO flowersstars DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" musicbooth
+ECHO musicbooth DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" Pingu_doctors
+ECHO Pingu_doctors DONE
+"C:\Users\Nico\AppData\Local\Programs\Python\Python37\python.exe" "C:\Users\Nico\PowerFolders\project_video_salience\motion_salience_in_video_MOG2.py" Pingu1
+ECHO Pingu1 DONE
+
+PAUSE
+
+```
+
+## motion salience extraction
+
+script names "motion_salience_in_video_MOG2.py"
+
+```{python motion_salience_extraction, eval=F}
+
+import cv2
+import sys
+import os
+
+###NOTE: takes videos split to scenes as input - as videos with different scenes will cause the motion alorithm to provide false positives
+
+video_folder = "stimuli_scene"
+
+input_folder = sys.argv[1]
+output_folder = "motion_salience"
+
+scenes = os.listdir(os.path.join(video_folder,input_folder))
+scenes.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) #sort alphanumerically
+
+for scene in scenes:
+
+    #input_folder = sys.argv[1]
+    # for loop stimulus name
+    stimulus_file = scene
+    stimulus_name = os.path.splitext(scene)[0]
+
+    #create stimulus-specific output folder if it does not exist
+    output_path = os.path.join(output_folder,input_folder,stimulus_name)
+    if not os.path.exists(output_path):
+       os.makedirs(output_path)
+
+    #open video of the scene (ceated by split_images_to_scenes)
+    video_path = os.path.join(video_folder,input_folder,stimulus_file)
+    cap = cv2.VideoCapture(video_path)
+
+    # amount_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    # print(amount_of_frames)
+
+    #---> identify MOTION SALIENCE
+    # loop over frames from the video file stream
+    i=1
+    while (cap.isOpened()):
+
+        # grab the frame from the video
+        # cap.set(1,i) #set frame of the video stream
+        boolr, frame = cap.read() #read the frame of the stream
+        if boolr == False: #break if cannot be read
+            break
+        print(i)
+
+        #if saliency does not exist create it
+        try:
+            saliency
+        except:
+            #saliency = cv2.createBackgroundSubtractorMOG2(history = 25, detectShadows = False)
+            saliency = cv2.createBackgroundSubtractorMOG2(history = 500, varThreshold = 30, detectShadows = False)
+
+            #default varThresholdGen = 9
+            #default varThreshold = 16
+            #default history = 500 <- shorter adaption
+
+        ## convert the input frame to grayscale and compute the saliency
+        ## map based on the motion model
+        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #(success, saliencyMap) = saliency.computeSaliency(gray)
+        #saliencyMap = (saliencyMap * 255).astype("uint8")
+        #print(success)
+
+        #apply foreground segmentation
+        fgMask = saliency.apply(frame, learningRate = 1/i)
+
+        #add frame counter to original image
+        cv2.rectangle(frame, (10, 2), (100,20), (255,255,255), -1)
+        cv2.putText(frame, str(cap.get(cv2.CAP_PROP_POS_FRAMES)), (15, 15),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5 , (0,0,0))
+
+        #print to screen
+        cv2.imshow("Image", frame)
+        cv2.imshow("Salience", fgMask)
+
+        # #save to file
+        #cv2.imwrite(os.path.join(output_path,stimulus_name+"_motion_salience_frame"+str(i)+".jpg"), fgMask) #write salience map
+        #print(os.path.join(output_path,stimulus_name+"_motion_salience"+str(i)+".jpg")) #print processed salience map
+
+        i=i+1 #increase count
+
+        keyboard = cv2.waitKey(30)
+        if keyboard == 'q' or keyboard == 27:
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+```
+

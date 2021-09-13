@@ -8,4 +8,10 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+research project: salience extraction in dynamic video scenes
+
+content:
+
+- [salience extraction](extract_salience.html)
+- [data preprocessing](data_preprocessing.html)
+- [results](data_analysis_salience.html)

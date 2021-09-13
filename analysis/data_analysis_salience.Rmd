@@ -1,0 +1,1186 @@
+---
+title: "data_analysis_salience"
+author: "Nico Bast"
+date: "13 9 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(cache = TRUE) #during development
+knitr::opts_chunk$set(autodep = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+knitr::opts_chunk$set(echo = FALSE)
+
+
+  
+  suppressMessages({
+  
+  require(readxl) #load data
+  require(zoo) #pd preprocessing - na.approx
+  require(mice) #imputation 
+  require(Gmisc) #fastdo.call
+    
+  require(MatchIt) #sample matching
+  require(R.matlab) 
+  require(reshape2) #melt
+  
+    #visualization
+  require(ggplot2)
+  require(sjPlot) #plotting lmer
+  require(sjmisc)
+  require(gridExtra)#combine plots
+  require(kableExtra) #nice tables
+  #require(magick) #table formatting with kable_extra   
+    
+   #models  
+  require(lme4)
+  require(lmerTest)  
+  require(emmeans)
+  require(MuMIn) #estimate LMM effect size 
+    
+  require(psych) #PCA analysis (principal function)  
+  require(missMDA) #impute data in CFA
+  
+  require(simr) #power analysis
+    
+  })
+    
+  #graphic parameters
+  theme_set(theme_bw())
+  
+  #check for OS --> define home path (script independent of OS)
+  ifelse(Sys.info()['sysname']=='Linux',
+         home_path<-'~',
+         home_path<-'C:/Users/Nico')
+```
+```{r load_preprocessed_data}
+
+##load preprocessed data (see python salience extraction, preprocessing1-3) ####
+  path_to_data<-"/PowerFolders/data_LEAP"
+  load(file=paste0(home_path,path_to_data,"/gaze_motionsalience_aggregate_merged_151220.Rdata"))
+
+```
+
+# data merging
+
+fixation data and saccade data was previously preprocessed as separate files. These are now merged by saccade before a fixation.
+motion salience data is also merged with perceptual salience data
+
+```{r merge_saccade_fixation_data}
+
+## MERGE fixations and saccades ####
+    df_sac_match<-df_sac[,c('id','vid.id','ts.local','sacade_number','saccade_duration','saccade_distance','saccade_velocity_average','saccade_velocity_peak','motion_salience','rpd','pd')]
+    names(df_sac_match)[2]<-'saccade_vid_id'
+    names(df_sac_match)[3]<-'saccade_ts_local'
+    names(df_sac_match)[9]<-'saccade_motion_salience'
+    names(df_sac_match)[10]<-'saccade_rpd'
+    names(df_sac_match)[11]<-'saccade_pd'
+    
+    ##--> saccade number follows fixation number in the data - we want saccades before fixation
+    df_sac_match$sacade_number<-df_sac_match$sacade_number+1 #<- so saccade are matched before fixation
+    
+    #matching id
+    df_sac_match$match_id<-with(df_sac_match,interaction(id,sacade_number))
+    df_fix$match_id<-with(df_fix,interaction(id,fixation_number))
+    names(df_sac_match)[1]<-'saccade_id'
+    
+    df<-merge(df_fix,df_sac_match,by='match_id')
+    ts_diff<-with(df,saccade_ts_local-ts.local)
+    hist(ts_diff[ts_diff<1000 & ts_diff>(-1000)])
+    
+    df<-df[ts_diff<1000 & ts_diff>(-1000),]
+  
+```
+
+```{r merge_motion_and_perceptual_salience_data}
+
+  ## LOAD and MERGE LOWLEVEL SALIENCE DATA (spectral residual) ####
+    
+    tmp<-new.env()
+    load(paste(home_path,"/PowerFolders/data_LEAP/gaze_salience_aggregate_merged_211020.Rdata",sep=''),envir = tmp) 
+      ###--> contains low level salience data - see gaze_salience_analysis.R
+    df_lowlvl<-tmp$df_fix
+    df_lowlvl$match_id<-with(df_lowlvl,interaction(id,fixation_number))
+    df_lowlvl<-df_lowlvl[,c('match_id','salience','sal_rel')]
+    names(df_lowlvl)<-c('match_id','lowlvl_salience','lowlvl_sal_rel')
+    
+    df<-merge(df,df_lowlvl,by='match_id')
+
+```
+
+# sample definition
+
+also described in flow chart (see figure folder)
+
+## exclude cases (sample flow chart)
+
+excluded. Missing demographic data, deviating IQ, ADOS comparative severity below clinical cutoff
+
+```{r exclude_missing_deviating_cases, echo=T}
+
+## EXCLUDE CASES ####
+      
+      print('sample with available data / before exclusion:')
+      nrow(df_agg)      
+      with(df_agg,table(t1_diagnosis))
+
+  #DEMOGRAPHIC OUTLIER:
+      #table(is.na(df_agg$t1_ageyrs)) #no missings
+      #table(is.na(df_agg$t1_sex)) # no missings
+      
+      by(is.na(df_agg$t1_piq),df_agg$t1_diagnosis,table) #missing IQ data
+      by(df_agg$t1_piq<=60 | df_agg$t1_piq>=140,df_agg$t1_diagnosis,table) #IQ outlier
+      by(df_agg$SR==60,df_agg$t1_diagnosis,table) #sampling rate = 60hz
+      
+      
+      ### --> n=544
+      df_agg<-df_agg[df_agg$t1_piq>60 & df_agg$t1_piq<140,] #n=23
+      df_agg<-df_agg[!is.na(df_agg$t1_piq),] #n=7
+      df_agg<-df_agg[df_agg$SR!=60,] #n=8
+      
+          
+  ###--> STUDY SAMPLE
+      #with(df_agg[df_agg$t1_css_total_all>3 | df_agg$t1_diagnosis=='Control',],table(t1_sensory_subgroups,t1_diagnosis))
+      
+      table(df_agg$t1_diagnosis == 'Control' | (!is.na(df_agg$t1_css_total_all) & df_agg$t1_css_total_all>3))
+      
+      df_sample<-df_agg[df_agg$t1_diagnosis == 'Control' | (!is.na(df_agg$t1_css_total_all) & df_agg$t1_css_total_all>3),] 
+          with(df_sample,table(t1_diagnosis))
+
+      
+      #n=101
+      #n=99 excluded
+      #df_sample<-df_agg
+      
+      nrow(df_sample)
+      
+```
+
+## match groups
+
+match groups based on initial group differences
+
+```{r group_differences}
+
+## MATCH SAMPLE ####
+      
+      df_sample$age_group<-with(df_sample,ifelse(t1_ageyrs>=18,'adult',ifelse(t1_ageyrs>=12,'adolescent','child')))
+      table(df_sample$age_group,df_sample$t1_diagnosis)
+      
+      ###variables to be matched
+      with(df_sample,t.test(t1_ageyrs~t1_diagnosis)) 
+      with(df_sample,t.test(t1_piq~t1_diagnosis)) #higher IQ in TD --> matching
+      with(df_sample,chisq.test(t1_sex,t1_diagnosis))
+      with(df_sample,t.test(Accuracy~t1_diagnosis)) #group difference
+      with(df_sample,t.test(Precision~t1_diagnosis)) 
+      
+```
+
+```{r match_groups, echo=TRUE}
+     
+### MATCHING sample by age, iq  ####  
+      #sample size (n=406, --> matching process: ASD: n=75, TD: n=52)
+      nrow(df_sample)
+      with(df_sample,table(t1_diagnosis))
+      
+      #balancing based on age categories
+      df_cov<-df_sample[,c('id','t1_ageyrs','t1_sex','t1_piq','t1_diagnosis','Accuracy','Precision')]
+      groupBoo<-with(df_cov,ifelse(t1_diagnosis=='ASD',1,0))
+      df_cov<-data.frame(df_cov,groupBoo)
+      df_cov$piq<-round(df_cov$t1_piq) #round
+      df_cov$age<-floor(df_cov$t1_ageyrs)
+      
+      #ALL - matching
+      set.seed(100)
+      all.match<-matchit(groupBoo~age+piq+Accuracy,
+                         data=df_cov,
+                         method='nearest',discard='both', 
+                         replace=F,caliper=0.4)
+      
+      all.match  
+      
+      #remove cases in unaggregated data frame
+      all.match<-match.data(all.match)
+      df_sample<-df_sample[df_sample$id %in% all.match$id,]
+      
+      df_fix<-df_fix[df_fix$id %in% all.match$id,]
+      df_sac<-df_sac[df_sac$id %in% all.match$id,]
+      df<-df[df$id %in% all.match$id,]
+      
+      
+```
+
+# additional information
+
+## define age groups
+
+no differences occured between age groups on key demographic variables
+
+```{r age_groups}
+#define age group variable ####
+df_sample$age_group<-with(df_sample,ifelse(t1_ageyrs>=18,'adult',ifelse(t1_ageyrs>=12,'adolescent','child')))
+df$age_group<-with(df,ifelse(t1_ageyrs>=18,'adult',ifelse(t1_ageyrs>=12,'adolescent','child')))
+
+table(df_sample$age_group,df_sample$t1_diagnosis)
+
+###no group differences in age groups (no interactions)
+with(df_sample,summary(lm(t1_ageyrs~t1_diagnosis*age_group))) 
+with(df_sample,summary(lm(t1_piq~t1_diagnosis*age_group))) 
+with(df_sample,summary(glm(as.factor(t1_sex)~t1_diagnosis*age_group,family=binomial))) 
+with(df_sample,summary(lm(Accuracy~t1_diagnosis*age_group))) 
+with(df_sample,summary(lm(Accuracy~t1_diagnosis*age_group))) 
+```
+
+## missings in clinical variables
+
+```{r missings_in_clinical_variables}
+## NA in clincial covariates (that are imputed by MICE) ####
+      
+      ## merge data: demographics + sensorysubgroups + data quality ####
+      demfile<-paste(home_path,"/PowerFolders/data_LEAP/corelclinical_final050919/LEAP_t1_Core clinical variables_03-09-19-withlabels.xlsx",sep='')
+      df_dem<-read_excel(demfile, 1, col_names = T, na = c('999','777'))
+      
+      selected_vars<-c('subjects','t1_group','t1_diagnosis','t1_asd_thresh','t1_site',
+                       't1_schedule_adj','t1_sex','t1_ageyrs',
+                       't1_viq','t1_piq','t1_fsiq','t1_ssp_total','t1_rbs_total',
+                       "t1_srs_rawscore_combined","t1_css_total_all","t1_sa_css_all","t1_rrb_css_all",
+                       "t1_adi_social_total","t1_adi_communication_total","t1_adi_rrb_total")
+      
+      df_dem_select<-df_dem[,names(df_dem) %in% selected_vars]
+      
+      ####--> mental health comorbidities ##
+      adhd_inatt<-with(df_dem,ifelse(!is.na(t1_adhd_inattentiv_parent),t1_adhd_inattentiv_parent,t1_adhd_inattentiv_self)) #get ADHD rating from parent and self ratings
+      adhd_hyper<-with(df_dem,ifelse(!is.na(t1_adhd_hyperimpul_parent),t1_adhd_hyperimpul_parent,t1_adhd_hyperimpul_self)) #get ADHD rating from parent and self ratings
+      
+      
+      anx_beck<-with(df_dem,ifelse(!is.na(t1_beck_anx_adulta_self),t1_beck_anx_adulta_self,
+                                   ifelse(!is.na(t1_beck_anx_youthb_self),t1_beck_anx_youthb_self,t1_beck_anx_youthcd_parent
+                                   ))) #get ADHD rating from parent and self ratings
+      
+      dep_beck<-with(df_dem,ifelse(!is.na(t1_beck_dep_adulta_self),t1_beck_dep_adulta_self,
+                                   ifelse(!is.na(t1_beck_dep_youthb),t1_beck_dep_youthb,
+                                          ifelse(!is.na(t1_beck_dep_youthcd),t1_beck_dep_youthcd,t1_beck_dep_adultd_parent)
+                                   ))) #get ADHD rating from parent and self ratings
+      
+      
+      data_imp<-data.frame(df_dem_select,adhd_inatt,adhd_hyper,anx_beck,dep_beck)
+      
+      data_imp<-data_imp[data_imp$subjects %in% df_sample$id,]
+
+      print('missing ADHD inattention data:')
+      table(is.na(data_imp$adhd_inatt))[2]/sum(table(is.na(data_imp$adhd_inatt)))      
+      
+      print('missing ADHD hyperactivity data:')
+      table(is.na(data_imp$adhd_hyp))[2]/sum(table(is.na(data_imp$adhd_hyp)))      
+      
+      print('missing Beck anxiety data')
+      table(is.na(data_imp$anx_beck))[2]/sum(table(is.na(data_imp$anx_beck)))      
+      
+      print('missing Beck depression data')
+      table(is.na(data_imp$dep_beck))[2]/sum(table(is.na(data_imp$dep_beck)))      
+      
+
+```
+
+## grand average PD
+
+variable is used in CFA
+
+```{r grand_average_PD}
+
+##grand average corrected RPD####
+      
+      pd_grand_average<-median(df$pd[df$ts.scene<6000],na.rm=T)
+      df$pd_grand_average<-rep(pd_grand_average,nrow(df))
+      df$rpd3<-df$pd/df$pd_grand_average      
+
+```
+
+```{r workspace_cleanup}
+## CLEAN UP ENVIRONMENT ####
+      rm(list=setdiff(ls(), c('df','df_agg','df_sample','df_fix','df_sac','df_scenes')))
+
+```
+
+# data selection
+
+## define scene duration
+
+```{r scenes_duration, echo=T}
+
+  ##DEFINE TIME SPAN ####
+  df_scenes$vid_social<-ifelse(df_scenes$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov'),T,F)
+  
+  hist(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)>0 & diff(df_scenes$scene_time_onset)<20000],30,
+       xlab = 'time (ms)',main = 'duration of individual scenes',col='grey')
+  abline(v=5000,lty=2)
+  
+      #create figure scene duration
+      tiff(file="manuscript/figures/figure_sceneduration.tiff", # create a file in tiff format in current working directory
+      width=6, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+      
+      hist(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)>0 & diff(df_scenes$scene_time_onset)<20000],30,
+           xlab = 'time (ms)',col='grey',main='')
+      abline(v=5000,lty=2)
+      
+      dev.off() #close operation and save file
+      
+      #human scenes
+      hist(diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])[diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])>0 & diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])<20000],30,
+           xlab = 'time (ms)',main = 'duration of individual scenes (AOI scenes)',col='grey')
+      abline(v=5000,col="red")
+      
+      #non human scenes
+      hist(diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])[diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])>0 & diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])<20000],30,
+           xlab = 'time (ms)',main = 'duration of individual scenes (non AOI scenes)',col='grey')
+      abline(v=5000,col="red")
+      
+  #-->most scenes are shorter than 6 seconds
+  
+  median(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)>0])
+  sd(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)>0])
+  
+  
+  
+  #number of scenes:
+  length(table(droplevels(interaction(df$vid_scene_nr,df$vid.id))))
+    #human scenes
+    length(table(droplevels(interaction(df$vid_scene_nr[df$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov')],df$vid.id[df$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov')]))))
+    #scenes only presented in adolescents and adults
+    length(table(droplevels(interaction(df$vid_scene_nr[df$vid.id %in% c('dollhouse.m4v','musicbooth.mov')],df$vid.id[df$vid.id %in% c('dollhouse.m4v','musicbooth.mov')]))))
+    
+```
+
+## prepare data 
+
+### prepare data set
+
+calcualte additional required variables. scaling of variables
+
+```{r data_preparation}
+  ##---->>>> DEFINE data set for analysis ####
+  
+  #prepare data
+  duration_cutoff<-5000
+  df_model<-df[df$ts.scene<duration_cutoff & df$ts.scene>50,]
+  
+  df_model$vid_scene<-with(df_model,droplevels(interaction(vid.id,vid_scene_nr)))
+  df_model$vid_scene_nr<-as.factor(df_model$vid_scene_nr)
+
+  df_model$saccade_distance_z<-scale(df_model$saccade_distance)
+  df_model$saccade_duration_z<-scale(df_model$saccade_duration)
+  df_model$saccade_velocity_average_z<-scale(df_model$saccade_velocity_average)
+  df_model$rpd_z<-scale(df_model$rpd)
+  #df_model$rpd2_z<-scale(df_model$rpd2)
+  df_model$rpd3_z<-scale(df_model$rpd3)
+  
+  df_model$pd_z<-scale(df_model$pd)
+  df_model$fixation_duration_z<-scale(df_model$fixation_duration)
+  df_model$fixation_rms_z<-scale(df_model$fixation_rms)
+  df_model$saccade_rpd_z<-scale(df_model$saccade_rpd)
+  df_model$saccade_pd_z<-scale(df_model$saccade_pd)
+  df_model$motion_salience_z<-scale(df_model$motion_salience)
+  df_model$lowlvl_salience_z<-scale(df_model$lowlvl_salience)
+  
+  #create a categorical social video variable
+  vid_social<-ifelse(df_model$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov'),T,F)
+  df_model<-data.frame(df_model,vid_social)
+  
+  #define degree of polynomials in model fits
+  deg<-3
+```
+
+### extract pupillary components
+
+```{r PCA_pupillary_response}
+
+### PCA of pupillary progression ####
+    
+    df_pca<-df_model[,c('id','vid_scene','ts.scene','rpd','rpd3')]
+    df_pca$ts.scene_rounded<-round(df_pca$ts.scene/100) #round to milliseconds
+    PCAdata<-reshape2::dcast(df_pca,formula = id~ts.scene_rounded, fun.aggregate = median, na.rm=T, value.var ='rpd3')
+    #-->use grand average corrected data to induce variance
+    
+    #impute missing data
+    PCAdata<-imputePCA(PCAdata[,2:length(names(PCAdata))],ncp=2) #impute by expected PCA components (missMDA package)
+
+    PCAmodel<-principal(data.frame(PCAdata['completeObs']),nfactors = 2,rotate='varimax') 
+    plot(PCAmodel$loadings[,1])
+    plot(PCAmodel$loadings[,2]) 
+    
+    loads<-c(PCAmodel$loadings[,1],PCAmodel$loadings[,2])
+    ncol_matrix<-ncol(data.frame(PCAdata['completeObs']))
+    labels<-c(rep('RC1',ncol_matrix),rep('RC2',ncol_matrix))
+    id<-c(rep(1:ncol_matrix,2))
+    
+   #merge to data frame
+        df_loadings<-data.frame(1:50,PCAmodel$loadings[,1],PCAmodel$loadings[,2])
+        names(df_loadings)<-c('ts.scene_rounded','RC1_loading','RC2_loading')
+        
+        df_model$ts.scene_rounded<-round(df_model$ts.scene/100)
+        df_model<-merge(df_model,df_loadings,by='ts.scene_rounded') #lost data?
+        
+        #define factor loadeding weighted rpd variable
+        df_model$rpd_RC1<-df_model$rpd*df_model$RC1_loading
+        df_model$rpd_RC2<-df_model$rpd*df_model$RC2_loading
+        
+        df_model$rpd_RC1_z<-scale(df_model$rpd*df_model$RC1_loading)
+        df_model$rpd_RC2_z<-scale(df_model$rpd*df_model$RC2_loading)
+        
+
+        
+   #figure PCA loadings
+  g1<-ggplot(data=data.frame(loads,labels,id),aes(x=id*100,y=loads,group=labels,color=labels,fill=labels))+ 
+    geom_smooth(se=F) +theme_bw() +ggtitle('PCA: Factor Loadings') + theme(legend.position = "none",axis.title.x=element_blank()) +
+    annotate('text', x=3000, y=0.8, color='#F8766D' ,label='RC1')+
+    annotate('text', x=3000, y=0.5, color='#00BFC4' ,label='RC2')
+    
+  g2<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC1))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color='#F8766D')+theme(axis.title.y =   element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('Early Pupillary Response (PR1)')
+  
+g3<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC2))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color='#00BFC4')+theme(axis.title.y = element_blank(),axis.title.x =  element_blank(),legend.position = "none")+ggtitle('Late Pupillary Response (PR2)')
+
+
+  tiff(file="manuscript/figures/figure_factorloads.tiff", # create a file in tiff format in current working directory
+        width=9, height=3, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+    
+  grid.arrange(g1,g2,g3,ncol=3, bottom ='scene duration (ms)')      
+    
+  dev.off()          
+```
+
+# results
+
+## define function p-correction
+
+```{r func_p_correction}
+
+number_of_variables<-3
+  
+  summary_coef_padj<-function(x){
+    model_summary<-round(data.frame(anova(x))[,-2],3) #anova to apply Satterthwaites method (Sum Sq 3)
+    model_summary$p_adj<-sapply(as.list(model_summary$Pr..F.) #apply p-adj
+                                ,function(x){round(p.adjust(x,'fdr',number_of_variables),3)})
+    names(model_summary)<-c('Sum Sq','df1','df2','F','p','p_adj')
+    model_summary
+  }
+
+```
+
+## supporting analyses
+### polynomial fit comparison
+
+```{r polynomial_fit_comparison}
+
+ #rpd #---> degree 3 best
+  lmm_model<-lmer(rpd_z~scale(ts.scene)+
+                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    (1|id)+(1|vid_scene_nr)+(1|vid.id),data=df_model,REML=F)   #random effects
+  
+  
+  lmm_model2<-lmer(rpd_z~scale(poly(ts.scene,2))+
+                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                     (1|id)+(1|vid_scene_nr)+(1|vid.id),data=df_model,REML=F)   #random effects
+  
+  lmm_model3<-lmer(rpd_z~scale(poly(ts.scene,3))+
+                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                     (1|id)+(1|vid_scene_nr)+(1|vid.id),data=df_model,REML=F)   #random effects
+  
+  lmm_model4<-lmer(rpd_z~scale(poly(ts.scene,4))+
+                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                     (1|id)+(1|vid_scene_nr)+(1|vid.id),data=df_model,REML=F)   #random effects
+  
+  model_comparison<-anova(lmm_model,lmm_model2,lmm_model3,lmm_model4)
+  model_comparison<-round(model_comparison,3)
+  row_names<-c('first degree','second degree','third degree','fourth degree')
+  model_comparison<-cbind(row_names,model_comparison)
+  
+  table_model_fit<-model_comparison %>%
+    kbl(caption = "Comparison of polynomial fits: pupillary response",
+        col.names = c('model','parameters (n)','AIC','BIC','logLik','deviance','Chisq','df','p'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_fit
+  
+  save_kable(table_model_fit, file= 'manuscript/supplements/table_polynomialfitcomparison.html')
+```
+
+
+### power analysis
+
+```{r power_analysis, eval=F}
+
+### POWER simulation ####
+    
+    #-->make sure, there is no missing data, otherwise simulation will give errors --> and POWER==
+    df_power<-df_model[!is.na(df_model$rpd_z),names(df_model) %in% c('rpd_z','t1_diagnosis','vid_social','ts.scene','t1_sex','t1_ageyrs','t1_piq','adhd_inatt','anx_beck','dep_beck','Accuracy','Precision','centdev','id','vid_scene')]
+    df_power<-na.omit(df_power)
+    
+    power.lmm<-lme4::lmer(rpd_z~t1_diagnosis+vid_social+
+                       poly(ts.scene,3)+ #use I instead of polynomial for later emmeans
+                       t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                       scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                       scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                       (1|id)+(1|vid_scene),data=df_power,REML=F)   #random effects
+
+    #compares to model without the interested effect
+    # compared_model<-~vid_social+t1_diagnosis:vid_social+
+    #   poly(ts.scene,3)+ #use I instead of polynomial for later emmeans
+    #   t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+    #   scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+    #   scale(Accuracy)+scale(Precision)+scale(centdev)
+     
+    #--> define an effect that should be tested (group difference)      
+    fixef(power.lmm)["t1_diagnosisControl"]<-0.1
+    summary(power.lmm)
+    
+    #CALCULATE POWER - fcompare is used as INTERESTED EFFECT is involved in interaction - fcompare compares to model without the interested fixed effect
+    # powerSim(power.lmm, test = fcompare(compared_model), alpha=0.05, nsim=100) #nsim == number of simulation
+    # powerSim(power.lmm, test = fixed('t1_diagnosisControl'),alpha=0.05, nsim=10) #nsim == number of simulation
+    
+    powerSim(power.lmm, alpha=0.05, nsim=1000) #nsim == number of simulation
+    #--> without test argument, the first fixed effect will be tested
+
+```
+
+### sample descriptive statistics
+
+```{r sample descriptive statistics}
+
+## --> demographics (outputs overview table) ####
+  n_sample<-with(df_sample,table(t1_diagnosis))
+  age_m<-with(df_sample,as.numeric(by(t1_ageyrs,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  piq_m<-with(df_sample,as.numeric(by(t1_piq,t1_diagnosis,function(x){round(mean(x,na.rm=T),2)}))) 
+  acc_m<-with(df_sample,as.numeric(by(Accuracy,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  prec_m<-with(df_sample,as.numeric(by(Precision,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  age_sd<-with(df_sample,as.numeric(by(t1_ageyrs,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  piq_sd<-with(df_sample,as.numeric(by(t1_piq,t1_diagnosis,function(x){round(sd(x,na.rm=T),2)}))) 
+  acc_sd<-with(df_sample,as.numeric(by(Accuracy,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  prec_sd<-with(df_sample,as.numeric(by(Precision,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  
+  age<-paste(age_m,age_sd,sep='/')
+  piq<-paste(piq_m,piq_sd,sep='/')
+  acc<-paste(acc_m,acc_sd,sep='/')
+  prec<-paste(prec_m,prec_sd,sep='/')
+  
+  gender_table<-with(df_sample,sapply(by(t1_sex,t1_diagnosis,table),c))  #-->more female in TD  
+  gender<-paste(gender_table[1,],gender_table[2,],sep='/')
+  
+  #questionnaire data (covariates)
+  srs_m<-with(df_sample,as.numeric(by(t1_srs_rawscore_combined,t1_diagnosis,function(x){round(mean(x,na.rm = T),2)})))
+  adhd_m<-with(df_sample,as.numeric(by(adhd_inatt,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  anx_m<-with(df_sample,as.numeric(by(anx_beck,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  dep_m<-with(df_sample,as.numeric(by(dep_beck,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  srs_sd<-with(df_sample,as.numeric(by(t1_srs_rawscore_combined,t1_diagnosis,function(x){round(sd(x,na.rm=T),2)})))
+  adhd_sd<-with(df_sample,as.numeric(by(adhd_inatt,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  anx_sd<-with(df_sample,as.numeric(by(anx_beck,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  dep_sd<-with(df_sample,as.numeric(by(dep_beck,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  
+  srs<-paste(srs_m,srs_sd,sep='/')
+  adhd<-paste(adhd_m,adhd_sd,sep='/')
+  anx<-paste(anx_m,anx_sd,sep='/')
+  dep<-paste(dep_m,dep_sd,sep='/')
+  
+  #group difference - p-value
+  groupdiff_p<-c(NA,
+    round(as.numeric(with(df_sample,t.test(t1_ageyrs~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,chisq.test(t1_sex,t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(t1_piq~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(Accuracy~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(Precision~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(t1_srs_rawscore_combined~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(adhd_inatt~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(anx_beck~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(dep_beck~t1_diagnosis))['p.value']),3))
+ 
+  df_sampledescribe<-cbind(
+    row_names<-c('n','age','gender (F/M)','non-verbal IQ','data quality - accuracy','data quality - precision','SRS total','ADHD inatt','anxiety (BAS)','depression (BDI)'),
+    rbind(n_sample,age,gender,piq,acc,prec,srs,adhd,anx,dep),
+    groupdiff_p)
+  
+  #TABLE
+  table_sample<-df_sampledescribe %>%
+    kbl(caption = "Sample description",
+        col.names = c('','ASD','TD','p-value'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  #df_sampledescribe
+  table_sample
+  
+  save_kable(table_sample, file= 'manuscript/tables/table_sampledescription.html')
+  
+```
+
+### progression of key variables
+
+```{r progression_of_key_variables}
+
+g1<-ggplot(df_model,aes(x=ts.scene,y=rpd_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x + poly(x,3))+theme(axis.title.y = element_blank(),axis.title.x = element_blank())+ggtitle('pupillary response')+ scale_color_discrete(name = "group", labels = c("ASD", "TD"))+
+  scale_fill_discrete(name = "group", labels = c("ASD", "TD"))+#change legend labels
+    theme(legend.box.background = element_rect(color="black",size=1.1)) #legend box
+
+g2<-ggplot(df_model,aes(x=ts.scene,y=lowlvl_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x + poly(x,3), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('sensory salience: physical')
+
+g3<-ggplot(df_model[df_model$ts.scene>500,],aes(x=ts.scene,y=motion_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('sensory salience: motion')
+
+g4<-ggplot(df_model,aes(x=ts.scene,y=scale(aoi_face),group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('social attention: face AOI')
+
+g_legend<-function(x){
+  tmp <- ggplot_gtable(ggplot_build(x))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)}
+
+mylegend<-g_legend(g1)
+
+
+tiff(file="manuscript/figures/figure_variables.tiff", # create a file in tiff format in current working directory
+  width=8, height=6, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+      
+grid.arrange(
+    arrangeGrob(
+        g1+theme(legend.position="none"),
+        g4,
+        g2,
+        g3,ncol=2,bottom='scene duration (ms)',left='standardized scores (z)'),
+mylegend,ncol=2, widths=c(10,1))    
+
+dev.off() #close operation and save file
+      
+
+```
+
+
+
+## main analyses
+### sensory salience
+
+```{r results_physical_salience}
+
+ #all vids - lowlvl salience (spectral residual)
+  lmm_model_lowlvl<-lmer(scale(lowlvl_salience)~t1_diagnosis*(rpd_z)*vid_social*
+                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
+                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    (1|id)+(1|vid_scene),data=df_model)   #random effects
+  
+  #significant effects
+  cbind(round(fixef(lmm_model_lowlvl)['vid_socialTRUE'],2),
+        round(confint(lmm_model_lowlvl,parm = 'vid_socialTRUE'),2))
+  
+  cbind(round(fixef(lmm_model_lowlvl)['rpd_z'],2),
+        round(confint(lmm_model_lowlvl,parm = 'rpd_z'),2))
+  
+  confint(contrast(emmeans(lmm_model_lowlvl,~vid_social),'pairwise'))
+  
+  confint(emtrends(lmm_model_lowlvl,~vid_social,var='rpd_z'))
+
+  #table model summary
+  table_data_model_lowlvl<-summary_coef_padj(lmm_model_lowlvl)
+  row_names<-c('group','pupillary response (PR)','video category (VC)','time^1','time^2','time^3',
+               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'group x PR','group x VC','PR x VC','group x time^1','group x time^2','group x time^3',
+               'PR x time^1','PR x time^2','PR x time^3','VC x time^1','VC x time^2','VC x time^3',
+               'group x PR x VC','group x PR x time^1','group x PR x time^2','group x PR x time^3',
+               'group x VC x time^1','group x VC x time^2','group x VC x time^3',
+               'PR x VC x time^1','PR x VC x time^2','PR x VC x time^3',
+               'group x PR x VC x time^1','group x PR x VC x time^2','group x PR x VC x time^3')
+  
+  
+  table_data_model_lowlvl<-cbind(row_names,table_data_model_lowlvl)
+  
+  table_model_lowlvl<-table_data_model_lowlvl %>%
+    kbl(caption = "Linear mixed model: physical salience",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_lowlvl
+  
+  save_kable(table_model_lowlvl, file= 'manuscript/supplements/table_model_physical_salience.html')
+
+  
+```
+
+```{r results_motion_salience}
+
+ #all vids - motion salience (Gaussian)
+  lmm_model_motion<-lmer(motion_salience_z~t1_diagnosis*rpd_z*vid_social*
+                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    (1|id)+(1|vid_scene),data=df_model)   #random effects
+  
+  #r.squaredGLMM(lmm_model)
+  #summary(lmm_model)
+  
+  #table model summary
+  table_data_model_motion<-summary_coef_padj(lmm_model_motion)
+  row_names<-c('group','pupillary response (PR)','video category (VC)','time^1','time^2','time^3',
+               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'group x PR','group x VC','PR x VC','group x time^1','group x time^2','group x time^3',
+               'PR x time^1','PR x time^2','PR x time^3','VC x time^1','VC x time^2','VC x time^3',
+               'group x PR x VC','group x PR x time^1','group x PR x time^2','group x PR x time^3',
+               'group x VC x time^1','group x VC x time^2','group x VC x time^3',
+               'PR x VC x time^1','PR x VC x time^2','PR x VC x time^3',
+               'group x PR x VC x time^1','group x PR x VC x time^2','group x PR x VC x time^3')
+  
+  
+  table_data_model_motion<-cbind(row_names,table_data_model_motion)
+  
+  table_model_motion<-table_data_model_motion %>%
+    kbl(caption = "Linear mixed model: motion salience",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_motion
+  
+  save_kable(table_model_motion, file= 'manuscript/supplements/table_model_motion_salience.html')
+
+  # #plot interaction
+  # model_plot_data<-as.data.frame(emtrends(lmm_model_motion,~vid_social+ts.scene,
+  #                                            var='rpd_z',
+  #                                            at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+  #                                            params='deg'))
+  # plot_model<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+  #   geom_hline(yintercept = 0)+
+  #   geom_boxplot(aes(fill=vid_social,
+  #                    middle=rpd_z.trend,
+  #                    lower=rpd_z.trend-SE,
+  #                    upper=rpd_z.trend+SE,
+  #                    ymin=rpd_z.trend-2*SE,
+  #                    ymax=rpd_z.trend+2*SE),stat = "identity")+
+  #   theme_bw()+
+  #   xlab('time (ms)')+ylab('effect size (z)')+
+  #   scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+ #change legend labels
+  #   theme(legend.position = c(0.2, 0.2),legend.box.background = element_rect(color="black",size=1.1)) #legend position and box
+  # 
+  # plot_model
+  # 
+  # 
+  #  #create figure scene duration
+  # tiff(file="manuscript/figures/figure_motion_salience_interaction.tiff", # create a file in tiff format
+  # width=6, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+  # 
+  # plot_model
+  # 
+  # dev.off()
+
+  #interaction effects
+  emtrends(lmm_model_motion,~vid_social+ts.scene,
+           var='rpd_z',
+           at=list(ts.scene =c(1000,3000)),
+           params='deg')
+
+```
+
+### pupillary response
+
+```{r results_pupillary_response}
+
+lmm_model_rpd<-lmer(rpd_z~t1_diagnosis*vid_social*
+                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #use I instead of polynomial for later emmeans
+                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    (1|id)+(1|vid_scene),data=df_model)   #random effects
+  
+table_data_model_rpd<-summary_coef_padj(lmm_model_rpd)
+  row_names_rpd<-c('group','video category (VC)','time^1','time^2','time^3',
+               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'group x VC','group x time^1','group x time^2','group x time^3',
+               'VC x time^1','VC x time^2','VC x time^3',
+               'group x VC x time^1','group x VC x time^2','group x VC x time^3')
+
+  table_data_model_rpd<-cbind(row_names_rpd,table_data_model_rpd)
+  
+  table_model_rpd<-table_data_model_rpd %>%
+    kbl(caption = "Linear mixed model: pupillary response",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_rpd
+  
+  save_kable(table_model_rpd, file= 'manuscript/supplements/table_model_pupillaryresponse.html')
+
+  #summary_coef_padj(lmm_model_rpd)
+  #r.squaredGLMM(lmm_model)
+  
+  #significant effects
+  cbind(round(fixef(lmm_model_rpd)['vid_socialTRUE'],2),
+        round(confint(lmm_model_rpd,parm = 'vid_socialTRUE'),2))
+  
+  confint(contrast(emmeans(lmm_model_rpd,~t1_diagnosis|vid_social),'pairwise'))
+  
+  confint(contrast(emmeans(lmm_model_rpd,~t1_diagnosis|vid_social+ts.scene,at=list(ts.scene =c(0,1000,2000,3000,4000,5000))),'pairwise'))
+  
+  # #plot interaction
+  # model_plot<-as.data.frame(contrast(emmeans(lmm_model_rpd,~t1_diagnosis|vid_social+ts.scene,
+  #                                   at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+  #                                   params='deg'),'pairwise'))
+  # plot_model<-ggplot(model_plot,aes(x=as.factor(ts.scene)))+
+  #   geom_hline(yintercept = 0)+
+  #   geom_boxplot(aes(fill=vid_social,
+  #                    middle=estimate,
+  #                    lower=estimate-SE,
+  #                    upper=estimate+SE,
+  #                    ymin=estimate-2*SE,
+  #                    ymax=estimate+2*SE),stat = "identity")+
+  #   theme_bw()+
+  #   xlab('time (ms)')+ylab('effect size contrast (z): [ASD - TD]')+
+  #   scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+ #change legend labels
+  #   theme(legend.position = c(0.35, 0.15),legend.box.background = element_rect(color="black",size=1.1)) #legend position and box
+  # 
+  # #plot in markdown
+  # plot_model
+  # 
+  # 
+  # tiff(file="manuscript/figures/figure_pupillaryresponse_interaction.tiff", # create a file in tiff format
+  # width=7, height=5, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+  # 
+  # plot_model
+  # 
+  # dev.off()
+
+```
+
+### social attention
+
+```{r results_social_attention_without}
+
+#model without mediators
+lmm_model_data<-df_model[df_model$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov'),]
+  lmm_model_sa<-lmer(scale(aoi_face)~t1_diagnosis*
+                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    (1|id)+(1|vid_scene), #random effects
+                  data=lmm_model_data)   
+  
+table_data_model_sa<-summary_coef_padj(lmm_model_sa)
+
+row_names_sa<-c('group','time^1','time^2','time^3',
+             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'group x time^1','group x time^2','group x time^3')
+
+table_data_model_sa<-cbind(row_names_sa,table_data_model_sa)
+  
+  table_model_sa<-table_data_model_sa %>%
+    kbl(caption = "Linear mixed model: social attention without mediators",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa
+  
+  save_kable(table_model_sa, file= 'manuscript/supplements/table_model_socialattention_without.html')
+
+cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
+        round(confint(lmm_model_sa,parm = 't1_diagnosisControl'),2))
+  
+#emmeans(lmm_model_sa,~ts.scene,at=list(ts.scene= c(0,1000,2000,3000,4000,5000)))
+
+```
+
+```{r results_social_attention_with_salience}
+#inclusion of salience
+   lmm_model_sa_salience<-lmer(scale(aoi_face)~t1_diagnosis*(motion_salience_z+lowlvl_salience_z)*
+                          (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+                          t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                          scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                          scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                          (1|id)+(1|vid_scene), #random effects
+                        data=lmm_model_data)   
+    
+   table_data_model_sa_salience<-summary_coef_padj(lmm_model_sa_salience)
+   
+   row_names_sa_salience<-c('group','motion salience (MS)','physical salience (PS)','time^1','time^2','time^3',
+             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'group x MS','group x PS',
+             'group x time^1','group x time^2','group x time^3',
+             'MS x time^1','MS x time^2','MS x time^3',
+             'PS x time^1','PS x time^2','PS x time^3',
+             'group x MS x time^1','group x MS x time^2','group x MS x time^3',
+             'group x PS x time^1','group x PS x time^2','group x PS x time^3')
+  
+    
+   table_data_model_sa_salience<-cbind(row_names_sa_salience,table_data_model_sa_salience)
+  
+  table_model_sa_salience<-table_data_model_sa_salience %>%
+    kbl(caption = "Linear mixed model: social attention with motion salience and physical salience as mediators",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa_salience
+  
+  save_kable(table_model_sa_salience, file= 'manuscript/supplements/table_model_socialattention_with_salience.html')
+  
+  #effects of salience on social attention
+  cbind(round(fixef(lmm_model)['lowlvl_salience_z'],2),
+        round(confint(lmm_model,parm = 'lowlvl_salience_z'),2))
+  
+  cbind(round(fixef(lmm_model)['motion_salience_z'],2),
+        round(confint(lmm_model,parm = 'motion_salience_z'),2))
+
+ # #plot interaction - physical salience
+ #  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
+ #                                             var='lowlvl_salience_z',
+ #                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+ #                                             params='deg'))
+ #  g_physical<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+ #    geom_hline(yintercept = 0)+
+ #    geom_boxplot(aes(middle=lowlvl_salience_z.trend,
+ #                     lower=lowlvl_salience_z.trend-SE,
+ #                     upper=lowlvl_salience_z.trend+SE,
+ #                     ymin=lowlvl_salience_z.trend-2*SE,
+ #                     ymax=lowlvl_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+ #    theme_bw()+
+ #    ylim(-0.2,0.2)+
+ #    xlab('time (ms)')+ylab('effect size (z)')+ggtitle('physical salience')
+ #  
+ #  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
+ #                                             var='motion_salience_z',
+ #                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+ #                                             params='deg'))
+ #  g_motion<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+ #    geom_hline(yintercept = 0)+
+ #    geom_boxplot(aes(middle=motion_salience_z.trend,
+ #                     lower=motion_salience_z.trend-SE,
+ #                     upper=motion_salience_z.trend+SE,
+ #                     ymin=motion_salience_z.trend-2*SE,
+ #                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+ #    theme_bw()+
+ #    ylim(-0.2,0.2)+
+ #    xlab('time (ms)')+ylab('')+ggtitle('motion salience')+
+ #    scale_fill_discrete()
+ #  
+ #  
+ #  #plot to markdown
+ #  plot_model<-grid.arrange(g_physical,g_motion,ncol=2)
+ #  plot_model
+ #  
+ #  
+ #  tiff(file="manuscript/figures/figure_socialattention_salienceeffects.tiff", # create a file in tiff format
+ #  width=9, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+ # 
+ #  grid.arrange(g_physical,g_motion,ncol=2)
+ #  
+ #  dev.off()
+
+```
+
+```{r results_social_attention_with_pupillaryresponse}
+
+ ####--> add pupillary reactivity  #### 
+    lmm_model_sa_rpd<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_z)*
+                      (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
+                      t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                      scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                      scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                      (1|id)+(1|vid_scene), #random effects
+                    data=lmm_model_data)   
+              
+  
+    table_data_model_sa_rpd<-summary_coef_padj(lmm_model_sa_rpd)
+ 
+   row_names_sa_rpd<-c('group','pupillary response (PR)','time^1','time^2','time^3',
+             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'group x PR',
+             'group x time^1','group x time^2','group x time^3',
+             'PR x time^1','PR x time^2','PR x time^3',
+             'group x PR x time^1','group x PR x time^2','group x PR x time^3')
+  
+   table_data_model_sa_rpd<-cbind(row_names_sa_rpd,table_data_model_sa_rpd)
+  
+  table_model_sa_rpd<-table_data_model_sa_rpd %>%
+    kbl(caption = "Linear mixed model: social attention with pupillary response as mediator",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa_rpd
+  
+  save_kable(table_model_sa_rpd, file= 'manuscript/supplements/table_model_socialattention_with_pupillaryresponse.html')
+
+
+  #significant effects 
+  confint(emtrends(lmm_model_sa_rpd,~t1_diagnosis,var='rpd_z'))
+  #-->group difference explained by an effect of pupillary response on aoi-face in ASD
+  
+  
+```
+
+```{r results_social_attention_with_pupillarycomponents}
+
+   #--> secondary analysis - is it due to RC1 or RC2?
+        lmm_model_sa_pc<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_RC1_z+rpd_RC2_z)+
+                          t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+                          scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+                          scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                          (1|id)+(1|vid_scene), #random effects
+                        data=lmm_model_data)   
+     
+  table_data_model_sa_pc<-summary_coef_padj(lmm_model_sa_pc)
+  
+  row_names_sa_pc<-c('group','early pupillary comp. (PC1)','late pupillary comp. (PC2)',
+             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'group x PC1','group x PC2')
+  
+   table_data_model_sa_pc<-cbind(row_names_sa_pc,table_data_model_sa_pc)
+  
+  table_model_sa_pc<-table_data_model_sa_pc %>%
+    kbl(caption = "Linear mixed model: social attention with pupillary components as mediator",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa_pc
+  
+  save_kable(table_model_sa_pc, file= 'manuscript/supplements/table_model_socialattention_with_pupillarycomponents.html')
+
+      #significant effects
+        cbind(round(fixef(lmm_model_sa_pc)['rpd_RC1_z'],2),
+              round(confint(lmm_model_sa_pc,parm = 'rpd_RC1_z'),2))
+        
+        cbind(round(fixef(lmm_model_sa_pc)['rpd_RC2_z'],2),
+              round(confint(lmm_model_sa_pc,parm = 'rpd_RC2_z'),2))
+  
+
+```
+
+### panel figure - temporal effects
+
+```{r results_panelfigure_temporal_effects}
+
+# - prepare figures ####
+#g1 - effect of pupillary response on motion salience across groups
+  model_plot_data<-as.data.frame(emtrends(lmm_model_motion,~vid_social+ts.scene,
+                                             var='rpd_z',
+                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+                                             params='deg'))
+
+  g1_motion_salience_interaction<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+    geom_hline(yintercept = 0)+
+    geom_boxplot(aes(fill=vid_social,
+                     middle=rpd_z.trend,
+                     lower=rpd_z.trend-SE,
+                     upper=rpd_z.trend+SE,
+                     ymin=rpd_z.trend-2*SE,
+                     ymax=rpd_z.trend+2*SE),stat = "identity")+
+    theme_bw()+
+    #xlab('time (ms)')+ylab('effect size (z)')+
+    scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+
+    theme(legend.position = 'none',axis.title.x = element_blank(),axis.title.y = element_blank())+
+    ylim(-0.3,0.25)
+  
+  g1_motion_salience_interaction<-grid.arrange(g1_motion_salience_interaction, top = grid::textGrob("a.)", x = 0, hjust = 0))
+  
+#g2 - effect of pupillary response between groups
+  
+  model_plot<-as.data.frame(contrast(emmeans(lmm_model_rpd,~t1_diagnosis|vid_social+ts.scene,
+                                    at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+                                    params='deg'),'pairwise'))
+  g2_pupillaryresponse<-ggplot(model_plot,aes(x=as.factor(ts.scene)))+
+    geom_hline(yintercept = 0)+
+    geom_boxplot(aes(fill=vid_social,
+                     middle=estimate,
+                     lower=estimate-SE,
+                     upper=estimate+SE,
+                     ymin=estimate-2*SE,
+                     ymax=estimate+2*SE),stat = "identity")+
+    theme_bw()+
+    #xlab('time (ms)')+ylab('effect size contrast (z): [ASD - TD]')+
+    scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+
+    theme(legend.position = 'none',axis.title.x = element_blank(),axis.title.y = element_blank())+
+    ylim(-0.3,0.25)
+  
+  g2_pupillaryresponse<-grid.arrange(g2_pupillaryresponse,top = grid::textGrob("b.)", x = 0, hjust = 0))
+
+
+#g3 - physical and motion salience on social attention across groups
+  
+ #plot interaction - physical salience
+  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
+                                             var='lowlvl_salience_z',
+                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+                                             params='deg'))
+  g_physical<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+    geom_hline(yintercept = 0)+
+    geom_boxplot(aes(middle=lowlvl_salience_z.trend,
+                     lower=lowlvl_salience_z.trend-SE,
+                     upper=lowlvl_salience_z.trend+SE,
+                     ymin=lowlvl_salience_z.trend-2*SE,
+                     ymax=lowlvl_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+    theme_bw()+
+    ylim(-0.2,0.2)+
+    #xlab('time (ms)')+ylab('effect size (z)')+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank())
+    #ggtitle('physical salience')
+  
+  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
+                                             var='motion_salience_z',
+                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+                                             params='deg'))
+  g_motion<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+    geom_hline(yintercept = 0)+
+    geom_boxplot(aes(middle=motion_salience_z.trend,
+                     lower=motion_salience_z.trend-SE,
+                     upper=motion_salience_z.trend+SE,
+                     ymin=motion_salience_z.trend-2*SE,
+                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+    theme_bw()+
+    ylim(-0.2,0.2)+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank())+
+    #ggtitle('motion salience')+
+    scale_fill_discrete()
+  
+  #plot to markdown
+  g3_social_attention_salience_effects<-grid.arrange(g_physical,g_motion,ncol=2,top = grid::textGrob("c.)", x = 0, hjust = 0))
+
+# - define layout ####
+lay <- rbind(c(1,2),
+             c(3,3))
+             
+# - construct panel ####
+grid.arrange(g1_motion_salience_interaction,
+             g2_pupillaryresponse,
+             g3_social_attention_salience_effects,
+             layout_matrix=lay,
+             bottom='time (ms)',left= 'effect size (z) \n')
+
+
+# - save panel to file ####
+  
+tiff(file="manuscript/figures/figure_panel_temporaleffects.tiff", # create a file in tiff format
+  width=10, height=8, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+ 
+  grid.arrange(g1_motion_salience_interaction,
+             g2_pupillaryresponse,
+             g3_social_attention_salience_effects,
+             layout_matrix=lay,
+             bottom='time (ms)',left= 'effect size (z) \n')
+  
+  dev.off()
+  
+  
+```
+
+
+
