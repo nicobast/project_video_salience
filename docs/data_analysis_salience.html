@@ -1,0 +1,6288 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Nico Bast" />
+
+
+<title>data_analysis_salience</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">project_video_salience</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/nicobast/project_video_salience">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">data_analysis_salience</h1>
+<h4 class="author">Nico Bast</h4>
+<h4 class="date">13 9 2021</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-09-13
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>project_video_salience/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210113code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210113)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210113code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210113)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongdetected"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>Cache:</strong> detected </a>
+</p>
+</div>
+<div id="strongCachestrongdetected" class="panel-collapse collapse">
+<div class="panel-body">
+The following chunks had caches available:
+<ul>
+<li>
+age_groups
+</li>
+<li>
+data_preparation
+</li>
+<li>
+exclude_missing_deviating_cases
+</li>
+<li>
+func_p_correction
+</li>
+<li>
+grand_average_PD
+</li>
+<li>
+group_differences
+</li>
+<li>
+load_preprocessed_data
+</li>
+<li>
+match_groups
+</li>
+<li>
+merge_motion_and_perceptual_salience_data
+</li>
+<li>
+merge_saccade_fixation_data
+</li>
+<li>
+missings_in_clinical_variables
+</li>
+<li>
+PCA_pupillary_response
+</li>
+<li>
+polynomial_fit_comparison
+</li>
+<li>
+power_analysis
+</li>
+<li>
+progression_of_key_variables
+</li>
+<li>
+results_motion_salience
+</li>
+<li>
+results_physical_salience
+</li>
+<li>
+results_social_attention_with_pupillarycomponents
+</li>
+<li>
+results_social_attention_with_pupillaryresponse
+</li>
+<li>
+sample descriptive statistics
+</li>
+<li>
+scenes_duration
+</li>
+<li>
+session-info-chunk-inserted-by-workflowr
+</li>
+<li>
+workspace_cleanup
+</li>
+</ul>
+<p>To ensure reproducibility of the results, delete the cache directory <code>data_analysis_salience_cache</code> and re-run the analysis. To have workflowr automatically delete the cache directory prior to building the file, set <code>delete_cache = TRUE</code> when running <code>wflow_build()</code> or <code>wflow_publish()</code>.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree448552710510b48760e9f28e6fb6dcd454ac3caetargetblank4485527a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/nicobast/project_video_salience/tree/448552710510b48760e9f28e6fb6dcd454ac3cae" target="_blank">4485527</a> </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree448552710510b48760e9f28e6fb6dcd454ac3caetargetblank4485527a" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version <a href="https://github.com/nicobast/project_video_salience/tree/448552710510b48760e9f28e6fb6dcd454ac3cae" target="_blank">4485527</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/data_analysis_salience_cache/
+
+Untracked files:
+    Untracked:  .PowerFolder/
+    Untracked:  analysis/Results in unmatched sample.docx
+    Untracked:  code/OLD/
+    Untracked:  code/analysis_salience_130121.R
+    Untracked:  code/analysis_salience_150421.R
+    Untracked:  code/mean_salience_per_video.R
+    Untracked:  code/preprocessing1_matching_gaze_and_salience_data.R
+    Untracked:  code/preprocessing2_matching_gaze_and_motionsalience_data.R
+    Untracked:  code/preprocessing3_datareduction_adding_additional_data.R
+    Untracked:  code/python_code_salience_extraction/
+    Untracked:  code/sesnory_subgroup_analysis.R
+    Untracked:  data/merged_data/
+    Untracked:  data/video_stimuli_scenes.csv
+    Untracked:  desktop.ini
+    Untracked:  manuscript/
+    Untracked:  output/gaze_animate_sample.mp4
+    Untracked:  output/gaze_animate_sample_dollhouse_scene5.mp4
+    Untracked:  output/motion_salience/
+    Untracked:  output/motion_salience_video_pingudoctors_scene0.avi
+    Untracked:  output/salience_video_artist.avi
+    Untracked:  output/stimuli_pics/
+    Untracked:  output/stimuli_salience/
+    Untracked:  output/stimuli_scene/
+    Untracked:  project_init_workflow.R
+
+Unstaged changes:
+    Modified:   code/README.md
+    Modified:   data/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/data_analysis_salience.Rmd</code>) and HTML (<code>docs/data_analysis_salience.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/nicobast/project_video_salience/blob/448552710510b48760e9f28e6fb6dcd454ac3cae/analysis/data_analysis_salience.Rmd" target="_blank">4485527</a>
+</td>
+<td>
+nicobast
+</td>
+<td>
+2021-09-13
+</td>
+<td>
+Publish the initial files for myproject
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="data-merging" class="section level1">
+<h1>data merging</h1>
+<p>fixation data and saccade data was previously preprocessed as separate files. These are now merged by saccade before a fixation. motion salience data is also merged with perceptual salience data</p>
+<p><img src="figure/data_analysis_salience.Rmd/merge_saccade_fixation_data-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="sample-definition" class="section level1">
+<h1>sample definition</h1>
+<p>also described in flow chart (see figure folder)</p>
+<div id="exclude-cases-sample-flow-chart" class="section level2">
+<h2>exclude cases (sample flow chart)</h2>
+<p>excluded. Missing demographic data, deviating IQ, ADOS comparative severity below clinical cutoff</p>
+<pre class="r"><code>## EXCLUDE CASES ####
+      
+      print(&#39;sample with available data / before exclusion:&#39;)</code></pre>
+<pre><code>[1] &quot;sample with available data / before exclusion:&quot;</code></pre>
+<pre class="r"><code>      nrow(df_agg)      </code></pre>
+<pre><code>[1] 543</code></pre>
+<pre class="r"><code>      with(df_agg,table(t1_diagnosis))</code></pre>
+<pre><code>t1_diagnosis
+    ASD Control 
+    315     228 </code></pre>
+<pre class="r"><code>  #DEMOGRAPHIC OUTLIER:
+      #table(is.na(df_agg$t1_ageyrs)) #no missings
+      #table(is.na(df_agg$t1_sex)) # no missings
+      
+      by(is.na(df_agg$t1_piq),df_agg$t1_diagnosis,table) #missing IQ data</code></pre>
+<pre><code>df_agg$t1_diagnosis: ASD
+
+FALSE  TRUE 
+  310     5 
+------------------------------------------------------------ 
+df_agg$t1_diagnosis: Control
+
+FALSE  TRUE 
+  226     2 </code></pre>
+<pre class="r"><code>      by(df_agg$t1_piq&lt;=60 | df_agg$t1_piq&gt;=140,df_agg$t1_diagnosis,table) #IQ outlier</code></pre>
+<pre><code>df_agg$t1_diagnosis: ASD
+
+FALSE  TRUE 
+  294    16 
+------------------------------------------------------------ 
+df_agg$t1_diagnosis: Control
+
+FALSE  TRUE 
+  219     7 </code></pre>
+<pre class="r"><code>      by(df_agg$SR==60,df_agg$t1_diagnosis,table) #sampling rate = 60hz</code></pre>
+<pre><code>df_agg$t1_diagnosis: ASD
+
+FALSE  TRUE 
+  311     4 
+------------------------------------------------------------ 
+df_agg$t1_diagnosis: Control
+
+FALSE  TRUE 
+  224     4 </code></pre>
+<pre class="r"><code>      ### --&gt; n=544
+      df_agg&lt;-df_agg[df_agg$t1_piq&gt;60 &amp; df_agg$t1_piq&lt;140,] #n=23
+      df_agg&lt;-df_agg[!is.na(df_agg$t1_piq),] #n=7
+      df_agg&lt;-df_agg[df_agg$SR!=60,] #n=8
+      
+          
+  ###--&gt; STUDY SAMPLE
+      #with(df_agg[df_agg$t1_css_total_all&gt;3 | df_agg$t1_diagnosis==&#39;Control&#39;,],table(t1_sensory_subgroups,t1_diagnosis))
+      
+      table(df_agg$t1_diagnosis == &#39;Control&#39; | (!is.na(df_agg$t1_css_total_all) &amp; df_agg$t1_css_total_all&gt;3))</code></pre>
+<pre><code>
+FALSE  TRUE 
+   99   406 </code></pre>
+<pre class="r"><code>      df_sample&lt;-df_agg[df_agg$t1_diagnosis == &#39;Control&#39; | (!is.na(df_agg$t1_css_total_all) &amp; df_agg$t1_css_total_all&gt;3),] 
+          with(df_sample,table(t1_diagnosis))</code></pre>
+<pre><code>t1_diagnosis
+    ASD Control 
+    191     215 </code></pre>
+<pre class="r"><code>      #n=101
+      #n=99 excluded
+      #df_sample&lt;-df_agg
+      
+      nrow(df_sample)</code></pre>
+<pre><code>[1] 406</code></pre>
+</div>
+<div id="match-groups" class="section level2">
+<h2>match groups</h2>
+<p>match groups based on initial group differences</p>
+<pre><code>            
+             ASD Control
+  adolescent  84      82
+  adult       59      80
+  child       48      53</code></pre>
+<pre><code>
+    Welch Two Sample t-test
+
+data:  t1_ageyrs by t1_diagnosis
+t = -1.8108, df = 402.94, p-value = 0.07091
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -2.15579668  0.08850771
+sample estimates:
+    mean in group ASD mean in group Control 
+             15.94244              16.97608 </code></pre>
+<pre><code>
+    Welch Two Sample t-test
+
+data:  t1_piq by t1_diagnosis
+t = -4.3791, df = 382.03, p-value = 1.541e-05
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -11.098979  -4.220616
+sample estimates:
+    mean in group ASD mean in group Control 
+             100.0422              107.7020 </code></pre>
+<pre><code>
+    Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+
+data:  t1_sex and t1_diagnosis
+X-squared = 1.6829, df = 1, p-value = 0.1945</code></pre>
+<pre><code>
+    Welch Two Sample t-test
+
+data:  Accuracy by t1_diagnosis
+t = 5.1002, df = 295.37, p-value = 6.078e-07
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.2378880 0.5368347
+sample estimates:
+    mean in group ASD mean in group Control 
+           0.07190785           -0.31545349 </code></pre>
+<pre><code>
+    Welch Two Sample t-test
+
+data:  Precision by t1_diagnosis
+t = 1.0249, df = 388.4, p-value = 0.3061
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.07309426  0.23227557
+sample estimates:
+    mean in group ASD mean in group Control 
+           -0.1031796            -0.1827702 </code></pre>
+<pre class="r"><code>### MATCHING sample by age, iq  ####  
+      #sample size (n=406, --&gt; matching process: ASD: n=75, TD: n=52)
+      nrow(df_sample)</code></pre>
+<pre><code>[1] 406</code></pre>
+<pre class="r"><code>      with(df_sample,table(t1_diagnosis))</code></pre>
+<pre><code>t1_diagnosis
+    ASD Control 
+    191     215 </code></pre>
+<pre class="r"><code>      #balancing based on age categories
+      df_cov&lt;-df_sample[,c(&#39;id&#39;,&#39;t1_ageyrs&#39;,&#39;t1_sex&#39;,&#39;t1_piq&#39;,&#39;t1_diagnosis&#39;,&#39;Accuracy&#39;,&#39;Precision&#39;)]
+      groupBoo&lt;-with(df_cov,ifelse(t1_diagnosis==&#39;ASD&#39;,1,0))
+      df_cov&lt;-data.frame(df_cov,groupBoo)
+      df_cov$piq&lt;-round(df_cov$t1_piq) #round
+      df_cov$age&lt;-floor(df_cov$t1_ageyrs)
+      
+      #ALL - matching
+      set.seed(100)
+      all.match&lt;-matchit(groupBoo~age+piq+Accuracy,
+                         data=df_cov,
+                         method=&#39;nearest&#39;,discard=&#39;both&#39;, 
+                         replace=F,caliper=0.4)
+      
+      all.match  </code></pre>
+<pre><code>
+Call: 
+matchit(formula = groupBoo ~ age + piq + Accuracy, data = df_cov, 
+    method = &quot;nearest&quot;, discard = &quot;both&quot;, replace = F, caliper = 0.4)
+
+Sample sizes:
+          Control Treated
+All           215     191
+Matched       164     164
+Unmatched      47      13
+Discarded       4      14</code></pre>
+<pre class="r"><code>      #remove cases in unaggregated data frame
+      all.match&lt;-match.data(all.match)
+      df_sample&lt;-df_sample[df_sample$id %in% all.match$id,]
+      
+      df_fix&lt;-df_fix[df_fix$id %in% all.match$id,]
+      df_sac&lt;-df_sac[df_sac$id %in% all.match$id,]
+      df&lt;-df[df$id %in% all.match$id,]</code></pre>
+</div>
+</div>
+<div id="additional-information" class="section level1">
+<h1>additional information</h1>
+<div id="define-age-groups" class="section level2">
+<h2>define age groups</h2>
+<p>no differences occured between age groups on key demographic variables</p>
+<pre><code>            
+             ASD Control
+  adolescent  73      63
+  adult       53      55
+  child       38      46</code></pre>
+<pre><code>
+Call:
+lm(formula = t1_ageyrs ~ t1_diagnosis * age_group)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.3943 -1.8227  0.0485  1.4692  7.4550 
+
+Coefficients:
+                                   Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                         14.7828     0.2895  51.058   &lt;2e-16 ***
+t1_diagnosisControl                  0.7252     0.4254   1.705   0.0892 .  
+age_groupadult                       8.1404     0.4464  18.235   &lt;2e-16 ***
+age_groupchild                      -5.1392     0.4948 -10.386   &lt;2e-16 ***
+t1_diagnosisControl:age_groupadult  -0.1280     0.6385  -0.201   0.8412    
+t1_diagnosisControl:age_groupchild  -0.7717     0.6892  -1.120   0.2637    
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+Residual standard error: 2.474 on 322 degrees of freedom
+Multiple R-squared:  0.8228,    Adjusted R-squared:   0.82 
+F-statistic:   299 on 5 and 322 DF,  p-value: &lt; 2.2e-16</code></pre>
+<pre><code>
+Call:
+lm(formula = t1_piq ~ t1_diagnosis * age_group)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-40.399 -11.332   1.027  12.476  36.687 
+
+Coefficients:
+                                   Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                        100.3104     2.0427  49.106   &lt;2e-16 ***
+t1_diagnosisControl                  2.6660     3.0013   0.888   0.3751    
+age_groupadult                       1.0885     3.1496   0.346   0.7299    
+age_groupchild                       6.4183     3.4912   1.838   0.0669 .  
+t1_diagnosisControl:age_groupadult   0.9056     4.5048   0.201   0.8408    
+t1_diagnosisControl:age_groupchild  -0.9157     4.8627  -0.188   0.8507    
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+Residual standard error: 17.45 on 322 degrees of freedom
+Multiple R-squared:  0.02621,   Adjusted R-squared:  0.01109 
+F-statistic: 1.733 on 5 and 322 DF,  p-value: 0.1265</code></pre>
+<pre><code>
+Call:
+glm(formula = as.factor(t1_sex) ~ t1_diagnosis * age_group, family = binomial)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.8174  -1.4110   0.8157   0.8740   0.9606  
+
+Coefficients:
+                                   Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)                          1.4385     0.2973   4.839 1.31e-06 ***
+t1_diagnosisControl                 -0.6730     0.4020  -1.674   0.0941 .  
+age_groupadult                      -0.5089     0.4259  -1.195   0.2321    
+age_groupchild                      -0.7846     0.4531  -1.732   0.0834 .  
+t1_diagnosisControl:age_groupadult   0.6344     0.5855   1.084   0.2785    
+t1_diagnosisControl:age_groupchild   0.5532     0.6098   0.907   0.3643    
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 394.80  on 327  degrees of freedom
+Residual deviance: 389.01  on 322  degrees of freedom
+AIC: 401.01
+
+Number of Fisher Scoring iterations: 4</code></pre>
+<pre><code>
+Call:
+lm(formula = Accuracy ~ t1_diagnosis * age_group)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.3152 -0.4180 -0.1557  0.2599  2.4077 
+
+Coefficients:
+                                   Estimate Std. Error t value Pr(&gt;|t|)  
+(Intercept)                        -0.12669    0.07003  -1.809   0.0714 .
+t1_diagnosisControl                -0.11535    0.10290  -1.121   0.2631  
+age_groupadult                     -0.04448    0.10798  -0.412   0.6807  
+age_groupchild                     -0.15934    0.11969  -1.331   0.1840  
+t1_diagnosisControl:age_groupadult  0.03968    0.15444   0.257   0.7974  
+t1_diagnosisControl:age_groupchild  0.13854    0.16671   0.831   0.4066  
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+Residual standard error: 0.5984 on 322 degrees of freedom
+Multiple R-squared:  0.009191,  Adjusted R-squared:  -0.006194 
+F-statistic: 0.5974 on 5 and 322 DF,  p-value: 0.702</code></pre>
+<pre><code>
+Call:
+lm(formula = Accuracy ~ t1_diagnosis * age_group)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.3152 -0.4180 -0.1557  0.2599  2.4077 
+
+Coefficients:
+                                   Estimate Std. Error t value Pr(&gt;|t|)  
+(Intercept)                        -0.12669    0.07003  -1.809   0.0714 .
+t1_diagnosisControl                -0.11535    0.10290  -1.121   0.2631  
+age_groupadult                     -0.04448    0.10798  -0.412   0.6807  
+age_groupchild                     -0.15934    0.11969  -1.331   0.1840  
+t1_diagnosisControl:age_groupadult  0.03968    0.15444   0.257   0.7974  
+t1_diagnosisControl:age_groupchild  0.13854    0.16671   0.831   0.4066  
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+Residual standard error: 0.5984 on 322 degrees of freedom
+Multiple R-squared:  0.009191,  Adjusted R-squared:  -0.006194 
+F-statistic: 0.5974 on 5 and 322 DF,  p-value: 0.702</code></pre>
+</div>
+<div id="missings-in-clinical-variables" class="section level2">
+<h2>missings in clinical variables</h2>
+<pre><code>[1] &quot;missing ADHD inattention data:&quot;</code></pre>
+<pre><code>     TRUE 
+0.1707317 </code></pre>
+<pre><code>[1] &quot;missing ADHD hyperactivity data:&quot;</code></pre>
+<pre><code>     TRUE 
+0.1707317 </code></pre>
+<pre><code>[1] &quot;missing Beck anxiety data&quot;</code></pre>
+<pre><code>     TRUE 
+0.2317073 </code></pre>
+<pre><code>[1] &quot;missing Beck depression data&quot;</code></pre>
+<pre><code>     TRUE 
+0.2103659 </code></pre>
+</div>
+<div id="grand-average-pd" class="section level2">
+<h2>grand average PD</h2>
+<p>variable is used in CFA</p>
+</div>
+</div>
+<div id="data-selection" class="section level1">
+<h1>data selection</h1>
+<div id="define-scene-duration" class="section level2">
+<h2>define scene duration</h2>
+<pre class="r"><code>  ##DEFINE TIME SPAN ####
+  df_scenes$vid_social&lt;-ifelse(df_scenes$vid.id %in% c(&#39;50faces.mov&#39;,&#39;dollhouse.m4v&#39;,&#39;musicbooth.mov&#39;),T,F)
+  
+  hist(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)&gt;0 &amp; diff(df_scenes$scene_time_onset)&lt;20000],30,
+       xlab = &#39;time (ms)&#39;,main = &#39;duration of individual scenes&#39;,col=&#39;grey&#39;)
+  abline(v=5000,lty=2)</code></pre>
+<p><img src="figure/data_analysis_salience.Rmd/scenes_duration-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>      #create figure scene duration
+      tiff(file=&quot;manuscript/figures/figure_sceneduration.tiff&quot;, # create a file in tiff format in current working directory
+      width=6, height=4, units=&quot;in&quot;, res=300, compression=&#39;lzw&#39;) #define size and resolution of the resulting figure
+      
+      hist(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)&gt;0 &amp; diff(df_scenes$scene_time_onset)&lt;20000],30,
+           xlab = &#39;time (ms)&#39;,col=&#39;grey&#39;,main=&#39;&#39;)
+      abline(v=5000,lty=2)
+      
+      dev.off() #close operation and save file</code></pre>
+<pre><code>png 
+  2 </code></pre>
+<pre class="r"><code>      #human scenes
+      hist(diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])[diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])&gt;0 &amp; diff(df_scenes$scene_time_onset[df_scenes$vid_social==T])&lt;20000],30,
+           xlab = &#39;time (ms)&#39;,main = &#39;duration of individual scenes (AOI scenes)&#39;,col=&#39;grey&#39;)
+      abline(v=5000,col=&quot;red&quot;)</code></pre>
+<p><img src="figure/data_analysis_salience.Rmd/scenes_duration-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>      #non human scenes
+      hist(diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])[diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])&gt;0 &amp; diff(df_scenes$scene_time_onset[df_scenes$vid_social==F])&lt;20000],30,
+           xlab = &#39;time (ms)&#39;,main = &#39;duration of individual scenes (non AOI scenes)&#39;,col=&#39;grey&#39;)
+      abline(v=5000,col=&quot;red&quot;)</code></pre>
+<p><img src="figure/data_analysis_salience.Rmd/scenes_duration-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>  #--&gt;most scenes are shorter than 6 seconds
+  
+  median(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)&gt;0])</code></pre>
+<pre><code>[1] 2880</code></pre>
+<pre class="r"><code>  sd(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)&gt;0])</code></pre>
+<pre><code>[1] 3543.542</code></pre>
+<pre class="r"><code>  #number of scenes:
+  length(table(droplevels(interaction(df$vid_scene_nr,df$vid.id))))</code></pre>
+<pre><code>[1] 85</code></pre>
+<pre class="r"><code>    #human scenes
+    length(table(droplevels(interaction(df$vid_scene_nr[df$vid.id %in% c(&#39;50faces.mov&#39;,&#39;dollhouse.m4v&#39;,&#39;musicbooth.mov&#39;)],df$vid.id[df$vid.id %in% c(&#39;50faces.mov&#39;,&#39;dollhouse.m4v&#39;,&#39;musicbooth.mov&#39;)]))))</code></pre>
+<pre><code>[1] 36</code></pre>
+<pre class="r"><code>    #scenes only presented in adolescents and adults
+    length(table(droplevels(interaction(df$vid_scene_nr[df$vid.id %in% c(&#39;dollhouse.m4v&#39;,&#39;musicbooth.mov&#39;)],df$vid.id[df$vid.id %in% c(&#39;dollhouse.m4v&#39;,&#39;musicbooth.mov&#39;)]))))</code></pre>
+<pre><code>[1] 21</code></pre>
+</div>
+<div id="prepare-data" class="section level2">
+<h2>prepare data</h2>
+<div id="prepare-data-set" class="section level3">
+<h3>prepare data set</h3>
+<p>calcualte additional required variables. scaling of variables</p>
+</div>
+<div id="extract-pupillary-components" class="section level3">
+<h3>extract pupillary components</h3>
+<p><img src="figure/data_analysis_salience.Rmd/PCA_pupillary_response-1.png" width="672" style="display: block; margin: auto;" /><img src="figure/data_analysis_salience.Rmd/PCA_pupillary_response-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>png 
+  2 </code></pre>
+</div>
+</div>
+</div>
+<div id="results" class="section level1">
+<h1>results</h1>
+<div id="define-function-p-correction" class="section level2">
+<h2>define function p-correction</h2>
+</div>
+<div id="supporting-analyses" class="section level2">
+<h2>supporting analyses</h2>
+<div id="polynomial-fit-comparison" class="section level3">
+<h3>polynomial fit comparison</h3>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Comparison of polynomial fits: pupillary response
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+model
+</th>
+<th style="text-align:right;">
+parameters (n)
+</th>
+<th style="text-align:right;">
+AIC
+</th>
+<th style="text-align:right;">
+BIC
+</th>
+<th style="text-align:right;">
+logLik
+</th>
+<th style="text-align:right;">
+deviance
+</th>
+<th style="text-align:right;">
+Chisq
+</th>
+<th style="text-align:right;">
+df
+</th>
+<th style="text-align:right;">
+p
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+first degree
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+173150.7
+</td>
+<td style="text-align:right;">
+173287.7
+</td>
+<td style="text-align:right;">
+-86560.33
+</td>
+<td style="text-align:right;">
+173120.7
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+second degree
+</td>
+<td style="text-align:right;">
+16
+</td>
+<td style="text-align:right;">
+173151.9
+</td>
+<td style="text-align:right;">
+173298.0
+</td>
+<td style="text-align:right;">
+-86559.94
+</td>
+<td style="text-align:right;">
+173119.9
+</td>
+<td style="text-align:right;">
+0.786
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.375
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+third degree
+</td>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+173149.0
+</td>
+<td style="text-align:right;">
+173304.3
+</td>
+<td style="text-align:right;">
+-86557.52
+</td>
+<td style="text-align:right;">
+173115.0
+</td>
+<td style="text-align:right;">
+4.838
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.028
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fourth degree
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+173150.7
+</td>
+<td style="text-align:right;">
+173315.1
+</td>
+<td style="text-align:right;">
+-86557.37
+</td>
+<td style="text-align:right;">
+173114.7
+</td>
+<td style="text-align:right;">
+0.300
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.584
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="power-analysis" class="section level3">
+<h3>power analysis</h3>
+</div>
+<div id="sample-descriptive-statistics" class="section level3">
+<h3>sample descriptive statistics</h3>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Sample description
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+ASD
+</th>
+<th style="text-align:left;">
+TD
+</th>
+<th style="text-align:left;">
+p-value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+n
+</td>
+<td style="text-align:left;">
+164
+</td>
+<td style="text-align:left;">
+164
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:left;">
+16.22/5.63
+</td>
+<td style="text-align:left;">
+16.54/6.04
+</td>
+<td style="text-align:left;">
+0.626
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+gender (F/M)
+</td>
+<td style="text-align:left;">
+42/122
+</td>
+<td style="text-align:left;">
+53/111
+</td>
+<td style="text-align:left;">
+0.223
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+non-verbal IQ
+</td>
+<td style="text-align:left;">
+102.15/18.11
+</td>
+<td style="text-align:left;">
+105.19/16.89
+</td>
+<td style="text-align:left;">
+0.117
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+data quality - accuracy
+</td>
+<td style="text-align:left;">
+-0.18/0.62
+</td>
+<td style="text-align:left;">
+-0.25/0.57
+</td>
+<td style="text-align:left;">
+0.278
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+data quality - precision
+</td>
+<td style="text-align:left;">
+-0.12/0.8
+</td>
+<td style="text-align:left;">
+-0.11/0.77
+</td>
+<td style="text-align:left;">
+0.946
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRS total
+</td>
+<td style="text-align:left;">
+97.29/29.63
+</td>
+<td style="text-align:left;">
+27.59/19.83
+</td>
+<td style="text-align:left;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inatt
+</td>
+<td style="text-align:left;">
+4.38/3.16
+</td>
+<td style="text-align:left;">
+1.26/2
+</td>
+<td style="text-align:left;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety (BAS)
+</td>
+<td style="text-align:left;">
+15.11/11.45
+</td>
+<td style="text-align:left;">
+7.2/6.05
+</td>
+<td style="text-align:left;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression (BDI)
+</td>
+<td style="text-align:left;">
+14.78/12.35
+</td>
+<td style="text-align:left;">
+5.9/5.82
+</td>
+<td style="text-align:left;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="progression-of-key-variables" class="section level3">
+<h3>progression of key variables</h3>
+<pre><code>png 
+  2 </code></pre>
+</div>
+</div>
+<div id="main-analyses" class="section level2">
+<h2>main analyses</h2>
+<div id="sensory-salience" class="section level3">
+<h3>sensory salience</h3>
+<pre><code>                     2.5 % 97.5 %
+vid_socialTRUE -0.29 -0.42  -0.15</code></pre>
+<pre><code>            2.5 % 97.5 %
+rpd_z -0.02 -0.04  -0.01</code></pre>
+<pre><code> contrast     estimate     SE  df asymp.LCL asymp.UCL
+ FALSE - TRUE    0.266 0.0712 Inf     0.127     0.406
+
+Results are averaged over the levels of: t1_diagnosis, t1_sex 
+Note: contrasts are still on the scale scale 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+<pre><code> vid_social rpd_z.trend      SE  df asymp.LCL asymp.UCL
+ FALSE          -0.0360 0.00773 Inf   -0.0512  -0.02090
+  TRUE          -0.0119 0.00937 Inf   -0.0303   0.00647
+
+Results are averaged over the levels of: t1_diagnosis, t1_sex 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: physical salience
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+1.488
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+263.953
+</td>
+<td style="text-align:right;">
+1.704
+</td>
+<td style="text-align:right;">
+0.193
+</td>
+<td style="text-align:right;">
+0.579
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+pupillary response (PR)
+</td>
+<td style="text-align:right;">
+17.759
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+56869.342
+</td>
+<td style="text-align:right;">
+20.346
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+video category (VC)
+</td>
+<td style="text-align:right;">
+13.128
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+79.824
+</td>
+<td style="text-align:right;">
+15.040
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+8.803
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68233.615
+</td>
+<td style="text-align:right;">
+10.085
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+6.456
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68247.752
+</td>
+<td style="text-align:right;">
+7.396
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+4.577
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68247.374
+</td>
+<td style="text-align:right;">
+5.243
+</td>
+<td style="text-align:right;">
+0.022
+</td>
+<td style="text-align:right;">
+0.066
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+241.875
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.985
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+0.934
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+270.110
+</td>
+<td style="text-align:right;">
+1.070
+</td>
+<td style="text-align:right;">
+0.302
+</td>
+<td style="text-align:right;">
+0.906
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+1.575
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+266.350
+</td>
+<td style="text-align:right;">
+1.804
+</td>
+<td style="text-align:right;">
+0.180
+</td>
+<td style="text-align:right;">
+0.540
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.838
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+272.232
+</td>
+<td style="text-align:right;">
+2.105
+</td>
+<td style="text-align:right;">
+0.148
+</td>
+<td style="text-align:right;">
+0.444
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+0.382
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+209.388
+</td>
+<td style="text-align:right;">
+0.438
+</td>
+<td style="text-align:right;">
+0.509
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+0.071
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+223.502
+</td>
+<td style="text-align:right;">
+0.082
+</td>
+<td style="text-align:right;">
+0.775
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.743
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+303.422
+</td>
+<td style="text-align:right;">
+1.997
+</td>
+<td style="text-align:right;">
+0.159
+</td>
+<td style="text-align:right;">
+0.477
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+0.082
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+369.914
+</td>
+<td style="text-align:right;">
+0.093
+</td>
+<td style="text-align:right;">
+0.760
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+781.640
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+61947.894
+</td>
+<td style="text-align:right;">
+895.506
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR
+</td>
+<td style="text-align:right;">
+2.884
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+59515.863
+</td>
+<td style="text-align:right;">
+3.304
+</td>
+<td style="text-align:right;">
+0.069
+</td>
+<td style="text-align:right;">
+0.207
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC
+</td>
+<td style="text-align:right;">
+1.723
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+55964.028
+</td>
+<td style="text-align:right;">
+1.974
+</td>
+<td style="text-align:right;">
+0.160
+</td>
+<td style="text-align:right;">
+0.480
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC
+</td>
+<td style="text-align:right;">
+6.212
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31514.370
+</td>
+<td style="text-align:right;">
+7.117
+</td>
+<td style="text-align:right;">
+0.008
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+1.055
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68183.309
+</td>
+<td style="text-align:right;">
+1.208
+</td>
+<td style="text-align:right;">
+0.272
+</td>
+<td style="text-align:right;">
+0.816
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.819
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68193.552
+</td>
+<td style="text-align:right;">
+0.938
+</td>
+<td style="text-align:right;">
+0.333
+</td>
+<td style="text-align:right;">
+0.999
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.630
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68197.508
+</td>
+<td style="text-align:right;">
+0.722
+</td>
+<td style="text-align:right;">
+0.396
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^1
+</td>
+<td style="text-align:right;">
+0.218
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68201.553
+</td>
+<td style="text-align:right;">
+0.250
+</td>
+<td style="text-align:right;">
+0.617
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^2
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68221.075
+</td>
+<td style="text-align:right;">
+0.011
+</td>
+<td style="text-align:right;">
+0.916
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^3
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68226.630
+</td>
+<td style="text-align:right;">
+0.016
+</td>
+<td style="text-align:right;">
+0.899
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^1
+</td>
+<td style="text-align:right;">
+0.443
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68228.689
+</td>
+<td style="text-align:right;">
+0.507
+</td>
+<td style="text-align:right;">
+0.476
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^2
+</td>
+<td style="text-align:right;">
+1.106
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68243.382
+</td>
+<td style="text-align:right;">
+1.267
+</td>
+<td style="text-align:right;">
+0.260
+</td>
+<td style="text-align:right;">
+0.780
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^3
+</td>
+<td style="text-align:right;">
+0.958
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68246.420
+</td>
+<td style="text-align:right;">
+1.097
+</td>
+<td style="text-align:right;">
+0.295
+</td>
+<td style="text-align:right;">
+0.885
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC
+</td>
+<td style="text-align:right;">
+0.048
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+32697.898
+</td>
+<td style="text-align:right;">
+0.055
+</td>
+<td style="text-align:right;">
+0.814
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^1
+</td>
+<td style="text-align:right;">
+0.594
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68195.824
+</td>
+<td style="text-align:right;">
+0.680
+</td>
+<td style="text-align:right;">
+0.410
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^2
+</td>
+<td style="text-align:right;">
+0.193
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68217.200
+</td>
+<td style="text-align:right;">
+0.221
+</td>
+<td style="text-align:right;">
+0.638
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^3
+</td>
+<td style="text-align:right;">
+0.027
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68223.447
+</td>
+<td style="text-align:right;">
+0.030
+</td>
+<td style="text-align:right;">
+0.862
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^1
+</td>
+<td style="text-align:right;">
+0.235
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68193.931
+</td>
+<td style="text-align:right;">
+0.269
+</td>
+<td style="text-align:right;">
+0.604
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^2
+</td>
+<td style="text-align:right;">
+0.280
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68213.219
+</td>
+<td style="text-align:right;">
+0.321
+</td>
+<td style="text-align:right;">
+0.571
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^3
+</td>
+<td style="text-align:right;">
+0.246
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68214.407
+</td>
+<td style="text-align:right;">
+0.282
+</td>
+<td style="text-align:right;">
+0.595
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^1
+</td>
+<td style="text-align:right;">
+0.950
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68222.350
+</td>
+<td style="text-align:right;">
+1.088
+</td>
+<td style="text-align:right;">
+0.297
+</td>
+<td style="text-align:right;">
+0.891
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^2
+</td>
+<td style="text-align:right;">
+0.600
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68235.192
+</td>
+<td style="text-align:right;">
+0.687
+</td>
+<td style="text-align:right;">
+0.407
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^3
+</td>
+<td style="text-align:right;">
+0.725
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68234.909
+</td>
+<td style="text-align:right;">
+0.830
+</td>
+<td style="text-align:right;">
+0.362
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^1
+</td>
+<td style="text-align:right;">
+1.498
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68207.766
+</td>
+<td style="text-align:right;">
+1.716
+</td>
+<td style="text-align:right;">
+0.190
+</td>
+<td style="text-align:right;">
+0.570
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^2
+</td>
+<td style="text-align:right;">
+1.613
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68221.650
+</td>
+<td style="text-align:right;">
+1.848
+</td>
+<td style="text-align:right;">
+0.174
+</td>
+<td style="text-align:right;">
+0.522
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^3
+</td>
+<td style="text-align:right;">
+1.517
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68223.554
+</td>
+<td style="text-align:right;">
+1.737
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+<td style="text-align:right;">
+0.561
+</td>
+</tr>
+</tbody>
+</table>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: motion salience
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+285.315
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.975
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+pupillary response (PR)
+</td>
+<td style="text-align:right;">
+1.180
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+44791.680
+</td>
+<td style="text-align:right;">
+1.320
+</td>
+<td style="text-align:right;">
+0.251
+</td>
+<td style="text-align:right;">
+0.753
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+video category (VC)
+</td>
+<td style="text-align:right;">
+3.018
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+81.300
+</td>
+<td style="text-align:right;">
+3.375
+</td>
+<td style="text-align:right;">
+0.070
+</td>
+<td style="text-align:right;">
+0.210
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+177.600
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68308.605
+</td>
+<td style="text-align:right;">
+198.591
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+191.596
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68315.817
+</td>
+<td style="text-align:right;">
+214.242
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+178.729
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68313.754
+</td>
+<td style="text-align:right;">
+199.854
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+0.017
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+245.692
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.892
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+0.104
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+281.760
+</td>
+<td style="text-align:right;">
+0.117
+</td>
+<td style="text-align:right;">
+0.733
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+0.346
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+262.457
+</td>
+<td style="text-align:right;">
+0.387
+</td>
+<td style="text-align:right;">
+0.535
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.056
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+294.920
+</td>
+<td style="text-align:right;">
+1.181
+</td>
+<td style="text-align:right;">
+0.278
+</td>
+<td style="text-align:right;">
+0.834
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+200.364
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.979
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+0.177
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+225.576
+</td>
+<td style="text-align:right;">
+0.198
+</td>
+<td style="text-align:right;">
+0.657
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.494
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+374.975
+</td>
+<td style="text-align:right;">
+1.670
+</td>
+<td style="text-align:right;">
+0.197
+</td>
+<td style="text-align:right;">
+0.591
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+2.127
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+489.657
+</td>
+<td style="text-align:right;">
+2.378
+</td>
+<td style="text-align:right;">
+0.124
+</td>
+<td style="text-align:right;">
+0.372
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+120.229
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+51195.856
+</td>
+<td style="text-align:right;">
+134.440
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR
+</td>
+<td style="text-align:right;">
+1.665
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+48364.900
+</td>
+<td style="text-align:right;">
+1.862
+</td>
+<td style="text-align:right;">
+0.172
+</td>
+<td style="text-align:right;">
+0.516
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC
+</td>
+<td style="text-align:right;">
+0.640
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+48780.675
+</td>
+<td style="text-align:right;">
+0.715
+</td>
+<td style="text-align:right;">
+0.398
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC
+</td>
+<td style="text-align:right;">
+0.479
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+16000.653
+</td>
+<td style="text-align:right;">
+0.536
+</td>
+<td style="text-align:right;">
+0.464
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+1.123
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68269.023
+</td>
+<td style="text-align:right;">
+1.256
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+<td style="text-align:right;">
+0.786
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.532
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68274.625
+</td>
+<td style="text-align:right;">
+0.595
+</td>
+<td style="text-align:right;">
+0.441
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.289
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68276.093
+</td>
+<td style="text-align:right;">
+0.323
+</td>
+<td style="text-align:right;">
+0.570
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^1
+</td>
+<td style="text-align:right;">
+0.139
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68280.631
+</td>
+<td style="text-align:right;">
+0.156
+</td>
+<td style="text-align:right;">
+0.693
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^2
+</td>
+<td style="text-align:right;">
+0.996
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68290.110
+</td>
+<td style="text-align:right;">
+1.113
+</td>
+<td style="text-align:right;">
+0.291
+</td>
+<td style="text-align:right;">
+0.873
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^3
+</td>
+<td style="text-align:right;">
+1.812
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68291.225
+</td>
+<td style="text-align:right;">
+2.026
+</td>
+<td style="text-align:right;">
+0.155
+</td>
+<td style="text-align:right;">
+0.465
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^1
+</td>
+<td style="text-align:right;">
+4.957
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68304.534
+</td>
+<td style="text-align:right;">
+5.542
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.057
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^2
+</td>
+<td style="text-align:right;">
+3.792
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68312.684
+</td>
+<td style="text-align:right;">
+4.240
+</td>
+<td style="text-align:right;">
+0.039
+</td>
+<td style="text-align:right;">
+0.117
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^3
+</td>
+<td style="text-align:right;">
+3.804
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68312.528
+</td>
+<td style="text-align:right;">
+4.254
+</td>
+<td style="text-align:right;">
+0.039
+</td>
+<td style="text-align:right;">
+0.117
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC
+</td>
+<td style="text-align:right;">
+0.060
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+18228.628
+</td>
+<td style="text-align:right;">
+0.067
+</td>
+<td style="text-align:right;">
+0.796
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^1
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68276.079
+</td>
+<td style="text-align:right;">
+0.027
+</td>
+<td style="text-align:right;">
+0.870
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^2
+</td>
+<td style="text-align:right;">
+0.036
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68283.652
+</td>
+<td style="text-align:right;">
+0.041
+</td>
+<td style="text-align:right;">
+0.840
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^3
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68284.627
+</td>
+<td style="text-align:right;">
+0.206
+</td>
+<td style="text-align:right;">
+0.650
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^1
+</td>
+<td style="text-align:right;">
+0.217
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68273.742
+</td>
+<td style="text-align:right;">
+0.243
+</td>
+<td style="text-align:right;">
+0.622
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^2
+</td>
+<td style="text-align:right;">
+0.509
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68281.472
+</td>
+<td style="text-align:right;">
+0.570
+</td>
+<td style="text-align:right;">
+0.450
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^3
+</td>
+<td style="text-align:right;">
+0.867
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68281.802
+</td>
+<td style="text-align:right;">
+0.970
+</td>
+<td style="text-align:right;">
+0.325
+</td>
+<td style="text-align:right;">
+0.975
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^1
+</td>
+<td style="text-align:right;">
+19.365
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68290.927
+</td>
+<td style="text-align:right;">
+21.654
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^2
+</td>
+<td style="text-align:right;">
+27.791
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68294.174
+</td>
+<td style="text-align:right;">
+31.075
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x VC x time^3
+</td>
+<td style="text-align:right;">
+31.229
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68293.206
+</td>
+<td style="text-align:right;">
+34.921
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^1
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68281.873
+</td>
+<td style="text-align:right;">
+0.209
+</td>
+<td style="text-align:right;">
+0.647
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^2
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68285.158
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+<td style="text-align:right;">
+0.902
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x VC x time^3
+</td>
+<td style="text-align:right;">
+0.012
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68284.953
+</td>
+<td style="text-align:right;">
+0.013
+</td>
+<td style="text-align:right;">
+0.909
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code> vid_social ts.scene rpd_z.trend      SE  df asymp.LCL asymp.UCL
+ FALSE          1000     -0.0398 0.00791 Inf  -0.05535 -2.43e-02
+  TRUE          1000      0.0154 0.00957 Inf  -0.00338  3.41e-02
+ FALSE          3000      0.0454 0.01021 Inf   0.02536  6.54e-02
+  TRUE          3000     -0.0232 0.01183 Inf  -0.04637 -5.16e-06
+
+Results are averaged over the levels of: t1_diagnosis, t1_sex 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+</div>
+<div id="pupillary-response" class="section level3">
+<h3>pupillary response</h3>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: pupillary response
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+0.106
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+302.500
+</td>
+<td style="text-align:right;">
+0.151
+</td>
+<td style="text-align:right;">
+0.697
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+video category (VC)
+</td>
+<td style="text-align:right;">
+14.198
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+81.703
+</td>
+<td style="text-align:right;">
+20.217
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+1.601
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68037.834
+</td>
+<td style="text-align:right;">
+2.279
+</td>
+<td style="text-align:right;">
+0.131
+</td>
+<td style="text-align:right;">
+0.393
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+1.551
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68040.486
+</td>
+<td style="text-align:right;">
+2.208
+</td>
+<td style="text-align:right;">
+0.137
+</td>
+<td style="text-align:right;">
+0.411
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+1.152
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68038.926
+</td>
+<td style="text-align:right;">
+1.640
+</td>
+<td style="text-align:right;">
+0.200
+</td>
+<td style="text-align:right;">
+0.600
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+0.453
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+303.632
+</td>
+<td style="text-align:right;">
+0.645
+</td>
+<td style="text-align:right;">
+0.423
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+0.155
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+311.883
+</td>
+<td style="text-align:right;">
+0.220
+</td>
+<td style="text-align:right;">
+0.639
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+2.080
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+312.154
+</td>
+<td style="text-align:right;">
+2.962
+</td>
+<td style="text-align:right;">
+0.086
+</td>
+<td style="text-align:right;">
+0.258
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+308.934
+</td>
+<td style="text-align:right;">
+0.451
+</td>
+<td style="text-align:right;">
+0.502
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+2.943
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+296.463
+</td>
+<td style="text-align:right;">
+4.190
+</td>
+<td style="text-align:right;">
+0.042
+</td>
+<td style="text-align:right;">
+0.126
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+1.521
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+298.733
+</td>
+<td style="text-align:right;">
+2.165
+</td>
+<td style="text-align:right;">
+0.142
+</td>
+<td style="text-align:right;">
+0.426
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+0.060
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+311.669
+</td>
+<td style="text-align:right;">
+0.085
+</td>
+<td style="text-align:right;">
+0.771
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+0.056
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+329.173
+</td>
+<td style="text-align:right;">
+0.080
+</td>
+<td style="text-align:right;">
+0.778
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+309.587
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68301.078
+</td>
+<td style="text-align:right;">
+440.827
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC
+</td>
+<td style="text-align:right;">
+179.322
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68289.663
+</td>
+<td style="text-align:right;">
+255.340
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+0.328
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68016.915
+</td>
+<td style="text-align:right;">
+0.467
+</td>
+<td style="text-align:right;">
+0.495
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.379
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68019.287
+</td>
+<td style="text-align:right;">
+0.539
+</td>
+<td style="text-align:right;">
+0.463
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.308
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68019.658
+</td>
+<td style="text-align:right;">
+0.438
+</td>
+<td style="text-align:right;">
+0.508
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^1
+</td>
+<td style="text-align:right;">
+1.279
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68036.983
+</td>
+<td style="text-align:right;">
+1.821
+</td>
+<td style="text-align:right;">
+0.177
+</td>
+<td style="text-align:right;">
+0.531
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^2
+</td>
+<td style="text-align:right;">
+1.180
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68039.325
+</td>
+<td style="text-align:right;">
+1.680
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+<td style="text-align:right;">
+0.585
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VC x time^3
+</td>
+<td style="text-align:right;">
+1.632
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68038.962
+</td>
+<td style="text-align:right;">
+2.324
+</td>
+<td style="text-align:right;">
+0.127
+</td>
+<td style="text-align:right;">
+0.381
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^1
+</td>
+<td style="text-align:right;">
+7.120
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68021.133
+</td>
+<td style="text-align:right;">
+10.138
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^2
+</td>
+<td style="text-align:right;">
+6.847
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68025.566
+</td>
+<td style="text-align:right;">
+9.749
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+0.006
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x VC x time^3
+</td>
+<td style="text-align:right;">
+5.528
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+68025.587
+</td>
+<td style="text-align:right;">
+7.871
+</td>
+<td style="text-align:right;">
+0.005
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code>                    2.5 % 97.5 %
+vid_socialTRUE 0.38  0.17   0.59</code></pre>
+<pre><code>vid_social = FALSE:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.0773 0.0319 Inf    0.0149     0.140
+
+vid_social =  TRUE:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.0904 0.0323 Inf   -0.1538    -0.027
+
+Results are averaged over the levels of: t1_sex 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+<pre><code>vid_social = FALSE, ts.scene =    0:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.1435 0.0434 Inf    0.0584   0.22869
+
+vid_social =  TRUE, ts.scene =    0:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.1829 0.0461 Inf   -0.2733  -0.09260
+
+vid_social = FALSE, ts.scene = 1000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.0784 0.0319 Inf    0.0158   0.14095
+
+vid_social =  TRUE, ts.scene = 1000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.0853 0.0325 Inf   -0.1489  -0.02169
+
+vid_social = FALSE, ts.scene = 2000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.0796 0.0318 Inf    0.0172   0.14191
+
+vid_social =  TRUE, ts.scene = 2000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.0948 0.0323 Inf   -0.1581  -0.03159
+
+vid_social = FALSE, ts.scene = 3000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.1073 0.0336 Inf    0.0415   0.17317
+
+vid_social =  TRUE, ts.scene = 3000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.1470 0.0345 Inf   -0.2146  -0.07948
+
+vid_social = FALSE, ts.scene = 4000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.1219 0.0352 Inf    0.0528   0.19090
+
+vid_social =  TRUE, ts.scene = 4000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.1775 0.0366 Inf   -0.2492  -0.10583
+
+vid_social = FALSE, ts.scene = 5000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control   0.0833 0.0615 Inf   -0.0372   0.20389
+
+vid_social =  TRUE, ts.scene = 5000:
+ contrast      estimate     SE  df asymp.LCL asymp.UCL
+ ASD - Control  -0.1218 0.0636 Inf   -0.2465   0.00286
+
+Results are averaged over the levels of: t1_sex 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+</div>
+<div id="social-attention" class="section level3">
+<h3>social attention</h3>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: social attention without mediators
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+3.353
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+290.061
+</td>
+<td style="text-align:right;">
+5.948
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+<td style="text-align:right;">
+0.045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+493.544
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30834.035
+</td>
+<td style="text-align:right;">
+875.538
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+394.746
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30838.669
+</td>
+<td style="text-align:right;">
+700.271
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+336.955
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30839.497
+</td>
+<td style="text-align:right;">
+597.752
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+2.085
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+288.649
+</td>
+<td style="text-align:right;">
+3.699
+</td>
+<td style="text-align:right;">
+0.055
+</td>
+<td style="text-align:right;">
+0.165
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+13.937
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+294.063
+</td>
+<td style="text-align:right;">
+24.724
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+6.424
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.287
+</td>
+<td style="text-align:right;">
+11.396
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.152
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+293.236
+</td>
+<td style="text-align:right;">
+2.044
+</td>
+<td style="text-align:right;">
+0.154
+</td>
+<td style="text-align:right;">
+0.462
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+1.109
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+276.565
+</td>
+<td style="text-align:right;">
+1.967
+</td>
+<td style="text-align:right;">
+0.162
+</td>
+<td style="text-align:right;">
+0.486
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+1.928
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+282.287
+</td>
+<td style="text-align:right;">
+3.420
+</td>
+<td style="text-align:right;">
+0.065
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.732
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+296.990
+</td>
+<td style="text-align:right;">
+3.072
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+<td style="text-align:right;">
+0.243
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+1.029
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+322.288
+</td>
+<td style="text-align:right;">
+1.825
+</td>
+<td style="text-align:right;">
+0.178
+</td>
+<td style="text-align:right;">
+0.534
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+0.009
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31080.415
+</td>
+<td style="text-align:right;">
+0.016
+</td>
+<td style="text-align:right;">
+0.898
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30833.094
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.970
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30838.662
+</td>
+<td style="text-align:right;">
+0.006
+</td>
+<td style="text-align:right;">
+0.938
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30838.432
+</td>
+<td style="text-align:right;">
+0.012
+</td>
+<td style="text-align:right;">
+0.914
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code>                         2.5 % 97.5 %
+t1_diagnosisControl 0.08  0.02   0.15</code></pre>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: social attention with motion salience and physical salience as mediators
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+3.149
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+291.967
+</td>
+<td style="text-align:right;">
+5.621
+</td>
+<td style="text-align:right;">
+0.018
+</td>
+<td style="text-align:right;">
+0.054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+motion salience (MS)
+</td>
+<td style="text-align:right;">
+54.143
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30851.780
+</td>
+<td style="text-align:right;">
+96.652
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+physical salience (PS)
+</td>
+<td style="text-align:right;">
+16.781
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30873.352
+</td>
+<td style="text-align:right;">
+29.956
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+397.803
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30825.838
+</td>
+<td style="text-align:right;">
+710.130
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+317.004
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30829.695
+</td>
+<td style="text-align:right;">
+565.894
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+271.098
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30829.610
+</td>
+<td style="text-align:right;">
+483.944
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+2.119
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+289.284
+</td>
+<td style="text-align:right;">
+3.782
+</td>
+<td style="text-align:right;">
+0.053
+</td>
+<td style="text-align:right;">
+0.159
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+14.245
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+294.696
+</td>
+<td style="text-align:right;">
+25.430
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+6.448
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.959
+</td>
+<td style="text-align:right;">
+11.510
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.169
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+293.874
+</td>
+<td style="text-align:right;">
+2.086
+</td>
+<td style="text-align:right;">
+0.150
+</td>
+<td style="text-align:right;">
+0.450
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+1.139
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+277.212
+</td>
+<td style="text-align:right;">
+2.033
+</td>
+<td style="text-align:right;">
+0.155
+</td>
+<td style="text-align:right;">
+0.465
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+1.960
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+282.915
+</td>
+<td style="text-align:right;">
+3.499
+</td>
+<td style="text-align:right;">
+0.062
+</td>
+<td style="text-align:right;">
+0.186
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.733
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.622
+</td>
+<td style="text-align:right;">
+3.094
+</td>
+<td style="text-align:right;">
+0.080
+</td>
+<td style="text-align:right;">
+0.240
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+0.996
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+322.964
+</td>
+<td style="text-align:right;">
+1.778
+</td>
+<td style="text-align:right;">
+0.183
+</td>
+<td style="text-align:right;">
+0.549
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+0.048
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31060.673
+</td>
+<td style="text-align:right;">
+0.086
+</td>
+<td style="text-align:right;">
+0.770
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x MS
+</td>
+<td style="text-align:right;">
+1.106
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30846.537
+</td>
+<td style="text-align:right;">
+1.974
+</td>
+<td style="text-align:right;">
+0.160
+</td>
+<td style="text-align:right;">
+0.480
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PS
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30888.345
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+0.968
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+0.008
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30824.269
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+<td style="text-align:right;">
+0.904
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30828.970
+</td>
+<td style="text-align:right;">
+0.037
+</td>
+<td style="text-align:right;">
+0.848
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30827.765
+</td>
+<td style="text-align:right;">
+0.037
+</td>
+<td style="text-align:right;">
+0.847
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MS x time^1
+</td>
+<td style="text-align:right;">
+21.814
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30845.550
+</td>
+<td style="text-align:right;">
+38.940
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MS x time^2
+</td>
+<td style="text-align:right;">
+12.503
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30846.586
+</td>
+<td style="text-align:right;">
+22.320
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MS x time^3
+</td>
+<td style="text-align:right;">
+7.808
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30846.059
+</td>
+<td style="text-align:right;">
+13.938
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PS x time^1
+</td>
+<td style="text-align:right;">
+21.357
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30836.977
+</td>
+<td style="text-align:right;">
+38.124
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PS x time^2
+</td>
+<td style="text-align:right;">
+21.067
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30830.198
+</td>
+<td style="text-align:right;">
+37.608
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PS x time^3
+</td>
+<td style="text-align:right;">
+20.362
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30826.496
+</td>
+<td style="text-align:right;">
+36.350
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x MS x time^1
+</td>
+<td style="text-align:right;">
+0.046
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30863.106
+</td>
+<td style="text-align:right;">
+0.083
+</td>
+<td style="text-align:right;">
+0.773
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x MS x time^2
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30865.920
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+0.965
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x MS x time^3
+</td>
+<td style="text-align:right;">
+0.051
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30864.065
+</td>
+<td style="text-align:right;">
+0.091
+</td>
+<td style="text-align:right;">
+0.764
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PS x time^1
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30835.669
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.892
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PS x time^2
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30829.768
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+<td style="text-align:right;">
+0.936
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PS x time^3
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30826.237
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+0.950
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code>      2.5 % 97.5 %</code></pre>
+<pre><code>      2.5 % 97.5 %</code></pre>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: social attention with pupillary response as mediator
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+2.618
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+296.947
+</td>
+<td style="text-align:right;">
+4.648
+</td>
+<td style="text-align:right;">
+0.032
+</td>
+<td style="text-align:right;">
+0.096
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+pupillary response (PR)
+</td>
+<td style="text-align:right;">
+2.462
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+29775.259
+</td>
+<td style="text-align:right;">
+4.371
+</td>
+<td style="text-align:right;">
+0.037
+</td>
+<td style="text-align:right;">
+0.111
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^1
+</td>
+<td style="text-align:right;">
+483.326
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30829.336
+</td>
+<td style="text-align:right;">
+858.029
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^2
+</td>
+<td style="text-align:right;">
+385.100
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30836.443
+</td>
+<td style="text-align:right;">
+683.653
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+time^3
+</td>
+<td style="text-align:right;">
+327.715
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30839.485
+</td>
+<td style="text-align:right;">
+581.778
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+2.060
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+289.223
+</td>
+<td style="text-align:right;">
+3.657
+</td>
+<td style="text-align:right;">
+0.057
+</td>
+<td style="text-align:right;">
+0.171
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+13.823
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+294.674
+</td>
+<td style="text-align:right;">
+24.539
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+6.631
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.972
+</td>
+<td style="text-align:right;">
+11.771
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.203
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+293.747
+</td>
+<td style="text-align:right;">
+2.136
+</td>
+<td style="text-align:right;">
+0.145
+</td>
+<td style="text-align:right;">
+0.435
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+1.064
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+277.087
+</td>
+<td style="text-align:right;">
+1.889
+</td>
+<td style="text-align:right;">
+0.170
+</td>
+<td style="text-align:right;">
+0.510
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+1.842
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+282.756
+</td>
+<td style="text-align:right;">
+3.271
+</td>
+<td style="text-align:right;">
+0.072
+</td>
+<td style="text-align:right;">
+0.216
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.729
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.376
+</td>
+<td style="text-align:right;">
+3.070
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+<td style="text-align:right;">
+0.243
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+1.057
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+322.695
+</td>
+<td style="text-align:right;">
+1.877
+</td>
+<td style="text-align:right;">
+0.172
+</td>
+<td style="text-align:right;">
+0.516
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31074.634
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.981
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR
+</td>
+<td style="text-align:right;">
+4.068
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30115.935
+</td>
+<td style="text-align:right;">
+7.221
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^1
+</td>
+<td style="text-align:right;">
+0.137
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30829.036
+</td>
+<td style="text-align:right;">
+0.243
+</td>
+<td style="text-align:right;">
+0.622
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^2
+</td>
+<td style="text-align:right;">
+0.170
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30836.819
+</td>
+<td style="text-align:right;">
+0.302
+</td>
+<td style="text-align:right;">
+0.583
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x time^3
+</td>
+<td style="text-align:right;">
+0.185
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30839.276
+</td>
+<td style="text-align:right;">
+0.329
+</td>
+<td style="text-align:right;">
+0.567
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^1
+</td>
+<td style="text-align:right;">
+7.388
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30836.368
+</td>
+<td style="text-align:right;">
+13.115
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^2
+</td>
+<td style="text-align:right;">
+6.289
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30842.004
+</td>
+<td style="text-align:right;">
+11.164
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PR x time^3
+</td>
+<td style="text-align:right;">
+5.550
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30844.364
+</td>
+<td style="text-align:right;">
+9.853
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+0.006
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^1
+</td>
+<td style="text-align:right;">
+0.322
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30834.579
+</td>
+<td style="text-align:right;">
+0.572
+</td>
+<td style="text-align:right;">
+0.449
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^2
+</td>
+<td style="text-align:right;">
+0.221
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30839.948
+</td>
+<td style="text-align:right;">
+0.392
+</td>
+<td style="text-align:right;">
+0.531
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PR x time^3
+</td>
+<td style="text-align:right;">
+0.222
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30842.416
+</td>
+<td style="text-align:right;">
+0.393
+</td>
+<td style="text-align:right;">
+0.530
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code> t1_diagnosis rpd_z.trend      SE  df asymp.LCL asymp.UCL
+ ASD              -0.0397 0.01203 Inf   -0.0632  -0.01607
+ Control          -0.0142 0.00991 Inf   -0.0336   0.00524
+
+Results are averaged over the levels of: t1_sex 
+Degrees-of-freedom method: asymptotic 
+Confidence level used: 0.95 </code></pre>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Linear mixed model: social attention with pupillary components as mediator
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Sum Sq
+</th>
+<th style="text-align:right;">
+df1
+</th>
+<th style="text-align:right;">
+df2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+p_adj
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+group
+</td>
+<td style="text-align:right;">
+2.819
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+296.172
+</td>
+<td style="text-align:right;">
+4.850
+</td>
+<td style="text-align:right;">
+0.028
+</td>
+<td style="text-align:right;">
+0.084
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+early pupillary comp. (PC1)
+</td>
+<td style="text-align:right;">
+22.452
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30931.252
+</td>
+<td style="text-align:right;">
+38.635
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+late pupillary comp. (PC2)
+</td>
+<td style="text-align:right;">
+10.639
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31012.716
+</td>
+<td style="text-align:right;">
+18.308
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sex
+</td>
+<td style="text-align:right;">
+2.175
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+288.391
+</td>
+<td style="text-align:right;">
+3.743
+</td>
+<td style="text-align:right;">
+0.054
+</td>
+<td style="text-align:right;">
+0.162
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+age
+</td>
+<td style="text-align:right;">
+13.875
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+293.999
+</td>
+<td style="text-align:right;">
+23.876
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+perceptual IQ
+</td>
+<td style="text-align:right;">
+6.746
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+297.265
+</td>
+<td style="text-align:right;">
+11.608
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ADHD inattention
+</td>
+<td style="text-align:right;">
+1.369
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+293.051
+</td>
+<td style="text-align:right;">
+2.355
+</td>
+<td style="text-align:right;">
+0.126
+</td>
+<td style="text-align:right;">
+0.378
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+anxiety
+</td>
+<td style="text-align:right;">
+1.007
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+276.027
+</td>
+<td style="text-align:right;">
+1.733
+</td>
+<td style="text-align:right;">
+0.189
+</td>
+<td style="text-align:right;">
+0.567
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+depression
+</td>
+<td style="text-align:right;">
+1.917
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+281.833
+</td>
+<td style="text-align:right;">
+3.299
+</td>
+<td style="text-align:right;">
+0.070
+</td>
+<td style="text-align:right;">
+0.210
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accuracy
+</td>
+<td style="text-align:right;">
+1.738
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+296.766
+</td>
+<td style="text-align:right;">
+2.990
+</td>
+<td style="text-align:right;">
+0.085
+</td>
+<td style="text-align:right;">
+0.255
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+precision
+</td>
+<td style="text-align:right;">
+1.137
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+322.412
+</td>
+<td style="text-align:right;">
+1.957
+</td>
+<td style="text-align:right;">
+0.163
+</td>
+<td style="text-align:right;">
+0.489
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+center deviation
+</td>
+<td style="text-align:right;">
+0.031
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31087.730
+</td>
+<td style="text-align:right;">
+0.053
+</td>
+<td style="text-align:right;">
+0.819
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PC1
+</td>
+<td style="text-align:right;">
+0.907
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30988.299
+</td>
+<td style="text-align:right;">
+1.561
+</td>
+<td style="text-align:right;">
+0.211
+</td>
+<td style="text-align:right;">
+0.633
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+group x PC2
+</td>
+<td style="text-align:right;">
+2.198
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31007.773
+</td>
+<td style="text-align:right;">
+3.782
+</td>
+<td style="text-align:right;">
+0.052
+</td>
+<td style="text-align:right;">
+0.156
+</td>
+</tr>
+</tbody>
+</table>
+<pre><code>                2.5 % 97.5 %
+rpd_RC1_z -0.04 -0.05  -0.02</code></pre>
+<pre><code>               2.5 % 97.5 %
+rpd_RC2_z 0.01     0   0.03</code></pre>
+</div>
+<div id="panel-figure---temporal-effects" class="section level3">
+<h3>panel figure - temporal effects</h3>
+<p><img src="figure/data_analysis_salience.Rmd/results_panelfigure_temporal_effects-1.png" width="672" style="display: block; margin: auto;" /><img src="figure/data_analysis_salience.Rmd/results_panelfigure_temporal_effects-2.png" width="672" style="display: block; margin: auto;" /><img src="figure/data_analysis_salience.Rmd/results_panelfigure_temporal_effects-3.png" width="672" style="display: block; margin: auto;" /><img src="figure/data_analysis_salience.Rmd/results_panelfigure_temporal_effects-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>png 
+  2 </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre><code>R version 3.6.1 (2019-07-05)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 19043)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252   
+[3] LC_MONETARY=German_Germany.1252 LC_NUMERIC=C                   
+[5] LC_TIME=German_Germany.1252    
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] simr_1.0.5       missMDA_1.18     psych_1.9.12.31  MuMIn_1.43.17   
+ [5] emmeans_1.4.3.01 lmerTest_3.1-2   lme4_1.1-23      Matrix_1.2-18   
+ [9] kableExtra_1.3.1 gridExtra_2.3    sjmisc_2.8.5     sjPlot_2.8.5    
+[13] ggplot2_3.2.1    reshape2_1.4.3   R.matlab_3.6.2   MatchIt_3.0.2   
+[17] Gmisc_1.11.0     htmlTable_2.1.0  Rcpp_1.0.3       mice_3.7.0      
+[21] lattice_0.20-38  zoo_1.8-6        readxl_1.3.1    
+
+loaded via a namespace (and not attached):
+  [1] backports_1.1.5      Hmisc_4.3-0          workflowr_1.6.2     
+  [4] plyr_1.8.5           lazyeval_0.2.2       splines_3.6.1       
+  [7] RLRsim_3.1-3         digest_0.6.23        foreach_1.5.1       
+ [10] htmltools_0.4.0      magrittr_1.5         checkmate_1.9.4     
+ [13] cluster_2.1.0        doParallel_1.0.16    openxlsx_4.1.4      
+ [16] modelr_0.1.5         R.utils_2.9.2        jpeg_0.1-8.1        
+ [19] colorspace_1.4-1     rvest_0.3.5          ggrepel_0.8.1       
+ [22] haven_2.2.0          pan_1.6              xfun_0.11           
+ [25] dplyr_1.0.2          crayon_1.3.4         survival_3.1-8      
+ [28] iterators_1.0.12     glue_1.4.2           gtable_0.3.0        
+ [31] webshot_0.5.2        sjstats_0.18.0       car_3.0-6           
+ [34] jomo_2.6-10          abind_1.4-5          scales_1.1.0        
+ [37] mvtnorm_1.0-11       ggeffects_0.16.0     plotrix_3.7-7       
+ [40] viridisLite_0.3.0    xtable_1.8-4         performance_0.5.0   
+ [43] flashClust_1.01-2    foreign_0.8-74       Formula_1.2-3       
+ [46] stats4_3.6.1         DT_0.11              htmlwidgets_1.5.1   
+ [49] httr_1.4.1           RColorBrewer_1.1-2   acepack_1.4.1       
+ [52] ellipsis_0.3.0       pkgconfig_2.0.3      XML_3.99-0.3        
+ [55] R.methodsS3_1.7.1    binom_1.1-1          nnet_7.3-12         
+ [58] tidyselect_1.1.0     rlang_0.4.8          later_1.0.0         
+ [61] effectsize_0.0.1     munsell_0.5.0        cellranger_1.1.0    
+ [64] tools_3.6.1          generics_0.0.2       sjlabelled_1.1.6    
+ [67] broom_0.7.2          evaluate_0.14        stringr_1.4.0       
+ [70] yaml_2.2.0           knitr_1.26           fs_1.3.1            
+ [73] zip_2.0.4            forestplot_1.10      purrr_0.3.3         
+ [76] mitml_0.3-7          nlme_3.1-143         R.oo_1.23.0         
+ [79] leaps_3.1            xml2_1.2.2           pbkrtest_0.4-7      
+ [82] compiler_3.6.1       rstudioapi_0.10      curl_4.3            
+ [85] png_0.1-7            tibble_3.0.4         statmod_1.4.34      
+ [88] stringi_1.4.5        highr_0.8            parameters_0.8.5    
+ [91] forcats_0.4.0        nloptr_1.2.1         vctrs_0.3.4         
+ [94] pillar_1.4.3         lifecycle_0.2.0      estimability_1.3    
+ [97] data.table_1.12.8    insight_0.9.6        httpuv_1.5.2        
+[100] R6_2.4.1             latticeExtra_0.6-29  promises_1.1.0      
+[103] rio_0.5.16           codetools_0.2-16     boot_1.3-24         
+[106] MASS_7.3-51.5        rprojroot_1.3-2      withr_2.1.2         
+[109] mnormt_1.5-5         hms_0.5.3            mgcv_1.8-31         
+[112] bayestestR_0.7.2     parallel_3.6.1       grid_3.6.1          
+[115] rpart_4.1-15         tidyr_1.0.0          coda_0.19-4         
+[118] minqa_1.2.4          rmarkdown_2.0        carData_3.0-3       
+[121] git2r_0.26.1         numDeriv_2016.8-1.1  scatterplot3d_0.3-41
+[124] lubridate_1.7.9      base64enc_0.1-3      FactoMineR_2.4      </code></pre>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

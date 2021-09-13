@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Nico Bast" />
+
+
+<title>data preprocessing</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">project_video_salience</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/nicobast/project_video_salience">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">data preprocessing</h1>
+<h4 class="author">Nico Bast</h4>
+<h4 class="date">17 3 2021</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-09-13
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>project_video_salience/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div class="panel-group" id="workflowr-checks">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210113code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210113)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210113code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210113)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it difficult for you and others to run your code on a different machine. Change the absolute path(s) below to the suggested relative path(s) to make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C:_video_salience_data
+</td>
+<td style="text-align:left;">
+et_data
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C:_video_salience_salience
+</td>
+<td style="text-align:left;">
+stimuli_salience
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C:/Users/Nico/PowerFolders/project_video_salience/merged_data/
+</td>
+<td style="text-align:left;">
+merged_data
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C:_video_salience_salience
+</td>
+<td style="text-align:left;">
+motion_salience
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree448552710510b48760e9f28e6fb6dcd454ac3caetargetblank4485527a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/nicobast/project_video_salience/tree/448552710510b48760e9f28e6fb6dcd454ac3cae" target="_blank">4485527</a> </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree448552710510b48760e9f28e6fb6dcd454ac3caetargetblank4485527a" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version <a href="https://github.com/nicobast/project_video_salience/tree/448552710510b48760e9f28e6fb6dcd454ac3cae" target="_blank">4485527</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/data_analysis_salience_cache/
+
+Untracked files:
+    Untracked:  .PowerFolder/
+    Untracked:  analysis/Results in unmatched sample.docx
+    Untracked:  code/OLD/
+    Untracked:  code/analysis_salience_130121.R
+    Untracked:  code/analysis_salience_150421.R
+    Untracked:  code/mean_salience_per_video.R
+    Untracked:  code/preprocessing1_matching_gaze_and_salience_data.R
+    Untracked:  code/preprocessing2_matching_gaze_and_motionsalience_data.R
+    Untracked:  code/preprocessing3_datareduction_adding_additional_data.R
+    Untracked:  code/python_code_salience_extraction/
+    Untracked:  code/sesnory_subgroup_analysis.R
+    Untracked:  data/merged_data/
+    Untracked:  data/video_stimuli_scenes.csv
+    Untracked:  desktop.ini
+    Untracked:  manuscript/
+    Untracked:  output/gaze_animate_sample.mp4
+    Untracked:  output/gaze_animate_sample_dollhouse_scene5.mp4
+    Untracked:  output/motion_salience/
+    Untracked:  output/motion_salience_video_pingudoctors_scene0.avi
+    Untracked:  output/salience_video_artist.avi
+    Untracked:  output/stimuli_pics/
+    Untracked:  output/stimuli_salience/
+    Untracked:  output/stimuli_scene/
+    Untracked:  project_init_workflow.R
+
+Unstaged changes:
+    Modified:   code/README.md
+    Modified:   data/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/data_preprocessing.Rmd</code>) and HTML (<code>docs/data_preprocessing.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/nicobast/project_video_salience/blob/448552710510b48760e9f28e6fb6dcd454ac3cae/analysis/data_preprocessing.Rmd" target="_blank">4485527</a>
+</td>
+<td>
+nicobast
+</td>
+<td>
+2021-09-13
+</td>
+<td>
+Publish the initial files for myproject
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p>Raw data is preprocessed. Raw timestamp and oculomotor function data is combined to eye-tracking data sets. Extracted <a href="extract_salience.html">salience information</a> is merged to eye-tracking data sets. This is followed up by an elaborate preprocessing including pupil dilation preprocessing, data reduction to saccade/fixation events, adding area-of-interest-information, oculomotor outlier exclusion, adding demographic and phenotypic and data quality and sensory subgroup and video scene information.</p>
+<div id="setup" class="section level1">
+<h1>setup</h1>
+<pre class="r"><code>knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE) #do not execute chunks
+
+#TODO: define relative paths
+oculomotor_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_data_ET/&#39; # on linux machine - created by GraFIX at Birbeck
+timestamp_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_data170718/logs&#39; # on linux machine
+merged_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_merged/&#39; #combined oculomotor function + timestamp raw data</code></pre>
+</div>
+<div id="combine-data" class="section level1">
+<h1>combine data</h1>
+<div id="merge-raw-data" class="section level2">
+<h2>merge raw data</h2>
+<ul>
+<li>Raw Data is avaiable in two versions. These are merged by the following script
+<ul>
+<li>version 1 (v1): data with fixation identification and without timestamp information (oculomotor data)</li>
+<li>version 2 (v2): data without fxation identification but with timestamp/event information (timestamp data)</li>
+</ul></li>
+<li>INPUT:
+<ul>
+<li>data versions - locations: (on Linux machine with large amounts of RAM)
+<ul>
+<li>version1: “/home/nico/Documents/EUAIMS_data_ET/”</li>
+<li>version2: “/home/nico/Documents/EUAIMS_data170718/logs”</li>
+</ul></li>
+</ul></li>
+<li>OUTPUT:
+<ul>
+<li>EVENT DETECTION DATA for all natural videos</li>
+<li>SAVED to: /home/nico/Documents/EUAIMS_merged/</li>
+</ul></li>
+<li>flow chart information
+<ul>
+<li>data version 2: n = 763</li>
+<li>data version 1: n = 632</li>
+<li>data version 1&amp;2: n = 630</li>
+<li>data version 1&amp;2 and demographics: n = 556</li>
+</ul></li>
+</ul>
+<pre class="r"><code>#required packages
+require(parallel) #parallel processing
+#require(nlme) #linear mixed models (lme)
+#require(ggeffects) #predicted marginalized means
+#require(ggplot2)
+require(zoo) #na.approx in pd.preprocess.func
+
+#CSV data V1 - fixation identification data but fewer cases
+    #EVENT DETECTION by GraFIX has been applied
+paths.v1&lt;-&quot;/home/nico/Documents/EUAIMS_data_ET/&quot;
+data.files.v1&lt;-list.files(path=paths.v1, full.names=TRUE,recursive=T)
+id.vec.v1&lt;-substr(data.files.v1,38,49)
+rm(paths.v1)
+
+#CSV data -version 2 - find movie and corresponding segment number in log files
+paths.log&lt;-&quot;/home/nico/Documents/EUAIMS_data170718/logs&quot;
+log.files.v2&lt;-list.files(path=paths.log, full.names=TRUE,recursive=T)
+id.vec.v2&lt;-substr(log.files.v2,45,56)
+log.files.v2&lt;-log.files.v2[id.vec.v2 %in% id.vec.v1] #select only those that are in version 1
+data.files.v1&lt;-data.files.v1[id.vec.v1 %in% substr(log.files.v2,45,56)] #select only those that are in version 2
+
+func.readlog&lt;-function(x){
+df&lt;-read.csv(x, header =T, sep=&#39;,&#39;,dec=&#39;.&#39;)
+seq.number&lt;-c(&#39;01&#39;,&#39;02&#39;,&#39;03&#39;,&#39;04&#39;,&#39;05&#39;,&#39;06&#39;,&#39;07&#39;,&#39;08&#39;,&#39;09&#39;,&#39;10&#39;,&#39;11&#39;,&#39;12&#39;,&#39;13&#39;,&#39;14&#39;,&#39;15&#39;,&#39;16&#39;,&#39;17&#39;)
+df$order&lt;-paste(&#39;segment00&#39;,seq.number,sep=&#39;&#39;)[1:nrow(df)]
+return(df)
+} #func that reads log file and ads a corresponding segment variable (files are identified by segments)
+df.logs.list&lt;-lapply(log.files.v2,func.readlog)
+df.logs&lt;-data.frame(do.call(&#39;rbind&#39;,df.logs.list))
+
+#find start remote time - v2 data
+df.logs.start&lt;-lapply(df.logs.list,function(x){x[which.min(x$MovieOnsetETRemoteTime),]})
+df.logs.start&lt;-data.frame(do.call(&#39;rbind&#39;,df.logs.start))
+
+# MERGING FUNCTION ####
+func.mergedata&lt;-function(x,y=data.files.v1,z=df.logs.start,v=df.logs.1mov){
+  
+  #DEBUGING
+  #x&lt;-data.files.1mov[sample(1:length(data.files.1mov),1)]
+  #y&lt;-data.files.v1
+  #z&lt;-df.logs.start
+  #v&lt;-df.logs.1mov
+  
+  #DIAGNOSTICS
+  #get id name
+  id&lt;-substr(x,44,55)
+  print(paste(Sys.time(),&#39;start:&#39;,analyzed.movie,id))
+  
+  #READ data v2 (df) and v1 (df2)
+  df&lt;-read.csv(x, header =T, sep=&#39;,&#39;,dec=&#39;.&#39;)
+  #reduce data - drop unnecessary raw data
+  df&lt;-df[,-which(names(df) %in% c(&#39;TriggerSignal&#39;,&#39;Left_3D_x&#39;,&#39;Left_3D_y&#39;,&#39;Left_3D_z&#39;,&#39;Right_3D_x&#39;,&#39;Right_3D_y&#39;,&#39;Right_3D_z&#39;,&#39;Left_3D_UCS_x&#39;,&#39;Left_3D_UCS_y&#39;,&#39;Left_3D_UCS_z&#39;,&#39;Right_3D_UCS_x&#39;,&#39;Right_3D_UCS_y&#39;,&#39;Right_3D_UCS_z&#39;))]
+  #change names, so raw data can be identified in merged file
+  names(df)&lt;-c(&#39;RemoteTime&#39;,paste(&#39;raw&#39;,names(df)[-1],sep=&#39;.&#39;))
+  #READ CSV data -version 1 - fixaiton identification but fewer cases
+  match.file.v1&lt;-grep(pattern=id,y) #search the corresponding file by &#39;id&#39; in version 1 data
+  df2&lt;-read.csv(y[match.file.v1], header =T, sep=&#39;,&#39;,dec=&#39;.&#39;)
+  #--&gt; PROBLEM: very slow as whole csv is loaded each time
+  
+  #find start time and movie start time (in RemoteTime format) for a specific id from df.logs 
+  match.line&lt;-grep(pattern=id,z$ParticipantID) #search the corresponding file by &#39;id&#39; in version 1 data
+  start.time&lt;-z$MovieOnsetETRemoteTime[match.line]/1000 #in milliseconds
+  match.line&lt;-grep(pattern=id,v$ParticipantID) #search the corresponding file by &#39;id&#39; in version 1 data
+  start.time.mov&lt;-v$MovieOnsetETRemoteTime[match.line]/1000 #in milliseconds
+  end.time.mov&lt;-round(v$TrialOffsetTime[match.line]-v$TrialOnsetTime[match.line],3)*1000+start.time.mov
+  
+  #use these start times to create a absolute timestamp from the relative timestamps in v1 data
+  byHz&lt;-ifelse(mean(diff(df2$timestamp[1:100]))&lt;6,3.333,8.333) #estimate  1 / sampling rate
+  if(mean(diff(df2$timestamp[1:100]))&gt;10){byHz&lt;-16.666} #some participants with 60Hz sampling rate
+  
+  match.ts&lt;-(0:(length(df2$timestamp)-1)*byHz)+start.time #timestamp with milliseconds precision
+  #match v2 to v1 data and extract only relevant v2 data
+  df2&lt;-df2[which(match.ts&gt;=start.time.mov&amp;match.ts&lt;=end.time.mov),]
+  df&lt;-df[which((df$RemoteTime/1000)&gt;=start.time.mov&amp;(df$RemoteTime/1000)&lt;=end.time.mov),]
+  
+  #correct differences in size
+  if((nrow(df)&amp;nrow(df2))!=0){
+    
+    #correct for different sizes
+    if(nrow(df)!=nrow(df2)){
+      print(paste(Sys.time(),&#39;unmatched size:&#39;,id,nrow(df),nrow(df2)))
+      k&lt;-pmin(nrow(df),nrow(df2))
+      df&lt;-df[1:k,]
+      df2&lt;-df2[1:k,]
+    }
+    
+    #add additional variables and form dataframe
+    ts.local&lt;-0:(nrow(df)-1)*byHz
+    id&lt;-rep(id,nrow(df))
+    vid.id&lt;-rep(analyzed.movie,nrow(df))
+    df&lt;-data.frame(id,vid.id,ts.local,df,df2)
+    print(paste(Sys.time(),&#39;end:&#39;,analyzed.movie,id[1],round(mean(diff(df2$timestamp[1:100])),3)))
+    return(df)
+  }
+}
+
+#TWO LOOPS: applys func.mergedata ####
+  #loop one: select one movie and corresponding log files
+  #loop two: merge v1 and v2 data of selected movie --&gt; and save to file
+movies&lt;-unique(df.logs$Video)
+#loop one - CSV data -version 2 --&gt; SELECT MOVIE
+#analyzed.movie&lt;-unique(df.logs$Video)[sample(1:17,1)] #SELECT ONE RANDOM
+for(i in 1:length(movies)){
+analyzed.movie&lt;-movies[i]
+df.logs.1mov&lt;-df.logs[df.logs$Video==analyzed.movie,]
+df.logs.1mov&lt;-df.logs.1mov[duplicated(df.logs.1mov$ParticipantID)==F,] #drop participants with two movies
+#loop two
+#creates file location with ID and movie with varying segment number depending on ID (see df.logs):
+data.path&lt;-&quot;/home/nico/Documents/EUAIMS_data170718/csv/&quot;
+data.files.1mov&lt;-paste(data.path,df.logs.1mov$ParticipantID,&#39;/&#39;,df.logs.1mov$ParticipantID,&#39;_scenes_trial_&#39;,df.logs.1mov$order,&#39;_GAZE.csv&#39;,sep=&#39;&#39;)
+data.files.1mov&lt;-data.files.1mov[file.exists(data.files.1mov)] #check whether path exists as file
+# PARALLEL PROCESSING of merging 630 data sets ~ 854 seconds ####
+###### execute function on file list by parallel computing
+ptm&lt;-proc.time()
+cl &lt;- makeCluster(7,type=&#39;FORK&#39;,outfile=&#39;/home/nico/Documents/datamergeLog.txt&#39;)
+df.list&lt;-parLapply(cl,data.files.1mov,func.mergedata)
+stopCluster(cl)
+proc.time() - ptm
+#save merged movies to file
+filename&lt;-paste(merged_raw_data,analyzed.movie,&#39;_merged.Rdata&#39;,sep = &#39;&#39;)
+save(df.list,file=filename)
+print(paste(&#39;saved:&#39;,analyzed.movie))
+}</code></pre>
+</div>
+<div id="merge-perceptual-salience-data" class="section level2">
+<h2>merge perceptual salience data</h2>
+<ul>
+<li><p>TASK: “for every gaze coordinate associate a perceptual salience grayscale value”</p></li>
+<li><p>thinking about stimulus presentation screen+ vid sizes</p>
+<ul>
+<li>presentation screen was fixed to 345 * 259 mm (4:3 format) - corresponds to smooth-x and smooth_y variables</li>
+<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black screen during presentation - 32.38mm on both sides</li>
+</ul></li>
+<li><p>INPUT DATA:</p>
+<ul>
+<li>EU-AIMS oculomotor+gaze+timestamp data per video - “/home/nico/Documents/EUAIMS_merged/” (see above)
+<ul>
+<li>copied to: "C:_video_salience_data"</li>
+</ul></li>
+<li>saliency maps
+<ul>
+<li>"C:_video_salience_salience" <a href="extract_salience.html">see extract_salience</a></li>
+</ul></li>
+</ul></li>
+<li><p>OUPUT DATA: matched saliency + gaze data</p></li>
+</ul>
+<pre class="r"><code>### SETUP ####
+
+#packages
+require(readbitmap) #read image data
+require(gtools) #sort file paths alphanumerically - mixedsort
+
+#GET PATHS OF ET and SALIENCE DATA
+#et_paths&lt;-&quot;C:/Users/Nico/PowerFolders/project_video_salience/et_data/&quot;
+#et_paths&lt;-&quot;C:/Users/Nico/PowerFolders/data_LEAP/et_data_naturalscenes&quot;
+et_paths&lt;-&quot;~/Documents/EUAIMS_merged&quot;
+et_data_paths&lt;-list.files(path=et_paths, full.names=TRUE)
+et_data_names&lt;-list.files(path=et_paths)
+et_data_names&lt;-substr(et_data_names, 1, nchar(et_data_names)-nchar(&#39;.mov_merged.Rdata&#39;))
+et_data_names
+
+#salience_paths&lt;-&quot;C:/Users/Nico/PowerFolders/project_video_salience/stimuli_salience/&quot;
+salience_paths&lt;-&quot;~/PowerFolders/project_video_salience/stimuli_salience/&quot;
+salience_data_paths&lt;-list.files(path=salience_paths, full.names=T)
+salience_data_names&lt;-list.files(path=salience_paths)
+#select only salience data for which ET data is available
+salience_data_paths&lt;-salience_data_paths[match(et_data_names,salience_data_names)]
+
+#selected_stimuli&lt;-c(&#39;50faces&#39;,&#39;artist&#39;,&#39;birds&#39;,&#39;coralreef&#39;,&#39;dollhouse&#39;,&#39;flowersstars&#39;,&#39;musicbooth&#39;,&#39;Pingu_doctors&#39;,&#39;Pingu1&#39;)
+selected_stimuli&lt;-c(&#39;musicbooth&#39;,&#39;Pingu_doctors&#39;,&#39;Pingu1&#39;)
+et_data_paths&lt;-et_data_paths[et_data_names %in% selected_stimuli]
+salience_data_paths&lt;-salience_data_paths[et_data_names %in% selected_stimuli]
+et_data_names&lt;-et_data_names[et_data_names %in% selected_stimuli]
+
+# DEFINE MAIN FUNCTION: ####
+  #loops across all videos for which data is available
+  #contains several subfunctions (see gaze_salience_matching.R for same function but per video)
+  #et_data=et_data_paths, salience_data=salience_data_paths, vid_name=et_data_names
+func_match_et_and_salience&lt;-function(et_data,salience_data,vid_name){
+  # READ ET data 
+  load(et_data) #loads data as df.list (element per participant for one video)
+  df.list&lt;-df.list[!sapply(df.list,is.null)] #remove NULL datasets
+  df.list&lt;-lapply(df.list,function(x){ #set -1 to NA
+    x[x == -1]&lt;-NA
+    return(x)
+  })
+  print(c(&#39;loaded ET data:&#39;,vid_name)) #print to console that ET data is loaded
+  
+  #READ salience data as images (see python script)
+  all_img_paths&lt;-list.files(salience_data, full.names = T)
+  all_img_paths&lt;-mixedsort(all_img_paths) #sort file list
+  all_img&lt;-lapply(all_img_paths,read.bitmap) 
+  print(c(&#39;loaded salience data:&#39;,vid_name)) #print to console that ET data is loaded
+  
+  #DEFINE VARIABLES
+  fps&lt;-25 #standard for all videos? --&gt; no: artist, musicbooth, dollhouse with 24fps 
+  if(vid_name %in% c(&#39;artist&#39;,&#39;musicbooth&#39;,&#39;dollhouse&#39;)){fps&lt;-24}
+  single_img_length&lt;-1/fps*1000 #in ms
+  video_length&lt;-single_img_length*length(all_img)
+  start_ms&lt;-seq(1,video_length,single_img_length) #start of every frame in ms - 
+  end_ms&lt;-seq(single_img_length,video_length,single_img_length) # end of every frame in ms - 
+  
+  screen_x&lt;-345 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+  screen_y&lt;-259 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+  img_x_px&lt;-ncol(all_img[[1]]) #video width in pixels
+  
+  ifelse(ncol(all_img[[1]])/nrow(all_img[[1]]) == 16/9, #video aspect ratio
+         img_y_px&lt;-round(nrow(all_img[[1]])+0.333*nrow(all_img[[1]])),  #--&gt; compensate for presentation of 16:9 stimuli on 4:3 presentation screen size
+         img_y_px&lt;-nrow(all_img[[1]]) #video height in pixels
+          )
+  
+  #DEFINE function to create temporal loopup data
+  find_frame&lt;-function(x,y,z){which(x&gt;=y &amp; x&lt;=z)} #timestamp is greater as start_ms and smaller than end_ms
+  
+  #DEFINE function map salience
+  find_salience_value&lt;-function(my_img,my_list,x_cord,y_cord){
+    salience_value&lt;-my_list[[my_img]][x_cord,y_cord]
+    ifelse(is.null(salience_value),NA,salience_value)} #compensate for possible NULL values (occurs if gaze data is outside vid presentation time frame)
+  ##--&gt; find salience info based on TMEPORAL and SPATIAL data in the ET data set
+  #img_frame - temporal info, smooth_x_px, smooth_y_px - spatial info
+  
+  ### --&gt; BATCH across participants  
+  func_salience_mapping&lt;-function(single_df){
+    # CREATE gaze info in px to correspond to saliency information (SPATIAL lookup)
+    smooth_x_px&lt;-round(img_x_px/screen_x*single_df$smooth_x)
+    smooth_y_px&lt;-round(img_y_px/screen_y*single_df$smooth_y)
+    #compensate for presentation of 16:9 stimuli on 4:3 presentation screen size
+    if(ncol(all_img[[1]])/nrow(all_img[[1]]) == 16/9){
+      smooth_y_px&lt;-smooth_y_px-(round(0.125*img_y_px)) #gaze values need to be 1/8 height up to match stimulus position
+      smooth_y_px[smooth_y_px&lt;0]&lt;-NA
+      smooth_y_px[smooth_y_px&gt;(round(0.750*img_y_px))]&lt;-NA} 
+    #--&gt; compensate to height of vid that gaze cannot be outside index - otherwise function will crash
+    # CREATE sequence to identify corresponding img of single gaze sample (TEMPORAL lookup)
+    img_frame&lt;-as.numeric(sapply(round(single_df$ts.local),find_frame,y=start_ms,z=end_ms))
+    # --&gt; SALIENCE mapping (use TEMPORAL+SPATIAL info to find salience for each gaze)
+    salience&lt;-mapply(find_salience_value,my_img=img_frame,x_cord=smooth_y_px,y_cord=smooth_x_px, #info: on loading images x and y are exchanged
+                     MoreArgs = list(my_list = all_img)) #provide all_img as MoreArgs as it is not vectorized over (see also ?mapply)
+    print(levels(single_df$id)) #print process
+    return(salience)
+  }
+  
+  list_salience&lt;-lapply(df.list,func_salience_mapping)  
+  
+  #MERGE ET data and salience
+  df.list&lt;-mapply(data.frame,df.list,list_salience,SIMPLIFY = F) #merge et data and salience information
+  df.list&lt;-lapply(df.list,function(x){
+    names(x)[41]&lt;-&#39;salience&#39; #add salience label 
+    return(x)})  
+  
+  #RBIND list to data.frame
+  df&lt;-do.call(&#39;rbind&#39;,df.list)
+  print(c(&#39;matched ET and salience data for:&#39;,vid_name)) #print to console
+  
+  ###REDUCE SIZE remove non_salience information
+  df&lt;-df[!is.na(df$salience),]
+  
+  ##a.) RETURN to parent function
+  #return(df)
+  
+  ##b.) SAVE directly to file to save working memory
+  #filename&lt;-paste(&#39;C:/Users/Nico/PowerFolders/project_video_salience/merged_data/&#39;,vid_name,&#39;_ETsalience.Rdata&#39;,sep = &#39;&#39;)
+  #filename&lt;-paste(&#39;/home/nico/PowerFolders/project_video_salience/merged_data/&#39;,vid_name,&#39;_ETsalience.Rdata&#39;,sep = &#39;&#39;)
+  filename&lt;-paste(&#39;~/PowerFolders/project_video_salience/merged_data/salience/&#39;,vid_name,&#39;_ETsalience.Rdata&#39;,sep = &#39;&#39;)
+  
+  
+  save(df,file=filename)
+  print(paste(&#39;saved:&#39;,vid_name))
+  
+}
+
+##-&gt; BATCH across all videos and participants ####
+mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_data_paths,vid_name=et_data_names)</code></pre>
+</div>
+<div id="merge-motion-salience-data" class="section level2">
+<h2>merge motion salience data</h2>
+<ul>
+<li><p>TASK: “for every gaze coordinate associate a motion salience grayscale value”</p></li>
+<li><p>thinking about stimulus presentation screen+ vid sizes</p>
+<ul>
+<li>presentation screen was fixed to 345 * 259 mm (4:3 format) - corresponds to smooth-x and smooth_y variables</li>
+<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black screen during presentation - 32.38mm on both sides</li>
+</ul></li>
+<li><p>INPUT DATA:</p>
+<ul>
+<li>EU-AIMS oculomotor+gaze+timestamp data per video - “/home/nico/Documents/EUAIMS_merged/” (see above)
+<ul>
+<li>copied to: "C:_video_salience_data"</li>
+</ul></li>
+<li>saliency maps
+<ul>
+<li>"C:_video_salience_salience" <a href="extract_salience.html">see extract_salience</a></li>
+</ul></li>
+</ul></li>
+<li><p>OUPUT DATA: matched saliency + gaze data</p></li>
+</ul>
+<pre class="r"><code>### SETUP ####
+
+#packages
+require(readbitmap) #read image data
+require(gtools) #sort file paths alphanumerically - mixedsort
+
+#check for OS --&gt; define home path (script independent of OS)
+ifelse(Sys.info()[&#39;sysname&#39;]==&#39;Linux&#39;,
+       home_path&lt;-&#39;~&#39;,
+       home_path&lt;-&#39;C:/Users/Nico&#39;)
+
+
+# GET PATHS OF ET and SALIENCE DATA ####
+#et_paths&lt;-&quot;C:/Users/Nico/PowerFolders/project_video_salience/et_data/&quot;
+et_paths&lt;-paste(home_path,&quot;/PowerFolders/data_LEAP/et_data_naturalscenes&quot;,sep=&#39;&#39;)
+et_data_paths&lt;-list.files(path=et_paths, full.names=TRUE)
+et_data_names&lt;-list.files(path=et_paths)
+et_data_names&lt;-substr(et_data_names, 1, nchar(et_data_names)-nchar(&#39;.mov_merged.Rdata&#39;))
+
+#salience_paths&lt;-&quot;C:/Users/Nico/PowerFolders/project_video_salience/stimuli_salience/&quot;
+salience_paths&lt;-paste(home_path,&quot;/PowerFolders/project_video_salience/motion_salience/&quot;,sep=&#39;&#39;)
+salience_data_paths&lt;-list.files(path=salience_paths, full.names=T)
+salience_data_names&lt;-list.files(path=salience_paths)
+#select only salience data for which ET data is available
+salience_data_paths&lt;-salience_data_paths[match(et_data_names,salience_data_names)]
+
+###select stimuli
+#selected_stimuli&lt;-c(&#39;50faces&#39;,&#39;artist&#39;,&#39;birds&#39;,&#39;coralreef&#39;,&#39;dollhouse&#39;,&#39;flowersstars&#39;,&#39;musicbooth&#39;,&#39;Pingu_doctors&#39;,&#39;Pingu1&#39;)
+selected_stimuli&lt;-c(&#39;Pingu_doctors&#39;,&#39;Pingu1&#39;)
+
+#selected_stimuli&lt;-c(&#39;musicbooth&#39;)
+
+et_data_paths&lt;-et_data_paths[et_data_names %in% selected_stimuli]
+salience_data_paths&lt;-salience_data_paths[et_data_names %in% selected_stimuli]
+et_data_names&lt;-et_data_names[et_data_names %in% selected_stimuli]
+
+# DEFINE MAIN FUNCTION: ####
+  #loops across all videos for which data is available
+  #contains several subfunctions (see gaze_salience_matching.R for same function but per video)
+  #et_data=et_data_paths, salience_data=salience_data_paths, vid_name=et_data_names
+func_match_et_and_salience&lt;-function(et_data,salience_data,vid_name){
+  
+  # READ ET data (for each video)
+  load(et_data) #loads data as df.list (element per participant for one video)
+  df.list&lt;-df.list[!sapply(df.list,is.null)] #remove NULL datasets
+  df.list&lt;-lapply(df.list,function(x){ #set -1 to NA
+    x[x == -1]&lt;-NA
+    return(x)
+  })
+  print(c(&#39;loaded ET data:&#39;,vid_name)) #print to console that ET data is loaded
+  
+  #READ salience data as images (see python script) (for each video)
+  all_img_paths&lt;-list.files(salience_data, full.names = T, recursive=T) #change to recursive as motion salience is split to individual scenes of movie
+  all_img_paths&lt;-mixedsort(all_img_paths) #sort to order of scenes
+  all_img&lt;-lapply(all_img_paths,read.bitmap)
+  print(c(&#39;loaded salience data:&#39;,vid_name)) #print to console that salience data is loaded
+  
+  #DEFINE VARIABLES - required for matching
+  fps&lt;-25 #standard for all videos? --&gt; no: artist, musicbooth, dollhouse with 24fps 
+  if(vid_name %in% c(&#39;artist&#39;,&#39;musicbooth&#39;,&#39;dollhouse&#39;)){fps&lt;-24}
+  single_img_length&lt;-1/fps*1000 #in ms
+  video_length&lt;-single_img_length*length(all_img)
+  start_ms&lt;-seq(1,video_length,single_img_length) #start of every frame in ms - 
+  end_ms&lt;-seq(single_img_length,video_length,single_img_length) # end of every frame in ms - 
+  
+  screen_x&lt;-345 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+  screen_y&lt;-259 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+  img_x_px&lt;-ncol(all_img[[1]]) #video width in pixels
+  
+  #compensate aspect ratio differences between videos
+  ifelse(ncol(all_img[[1]])/nrow(all_img[[1]]) == 16/9, #video aspect ratio
+         img_y_px&lt;-round(nrow(all_img[[1]])+0.333*nrow(all_img[[1]])),  #--&gt; compensate for presentation of 16:9 stimuli on 4:3 presentation screen size
+         img_y_px&lt;-nrow(all_img[[1]]) #video height in pixels
+          )
+  
+  #DEFINE function to create temporal lookup data
+  find_frame&lt;-function(x,y,z){which(x&gt;=y &amp; x&lt;=z)} #timestamp is greater as start_ms and smaller than end_ms
+  
+  #DEFINE function map salience - spatial lookup
+  find_salience_value&lt;-function(my_img,my_list,x_cord,y_cord){
+    salience_value&lt;-my_list[[my_img]][x_cord,y_cord]
+    ifelse(is.null(salience_value),NA,salience_value)} #compensate for possible NULL values (occurs if gaze data is outside vid presentation time frame)
+  ##--&gt; find salience info based on TMEPORAL and SPATIAL data in the ET data set
+  #img_frame - temporal info, smooth_x_px, smooth_y_px - spatial info
+  
+  ### --&gt; BATCH across participants  
+  func_salience_mapping&lt;-function(single_df){
+    # CREATE gaze info in px to correspond to saliency information (SPATIAL lookup)
+    smooth_x_px&lt;-round(img_x_px/screen_x*single_df$smooth_x)
+    smooth_y_px&lt;-round(img_y_px/screen_y*single_df$smooth_y)
+    #compensate for presentation of 16:9 stimuli on 4:3 presentation screen size
+    if(ncol(all_img[[1]])/nrow(all_img[[1]]) == 16/9){
+      smooth_y_px&lt;-smooth_y_px-(round(0.125*img_y_px)) #gaze values need to be 1/8 height up to match stimulus position
+      smooth_y_px[smooth_y_px&lt;0]&lt;-NA
+      smooth_y_px[smooth_y_px&gt;(round(0.750*img_y_px))]&lt;-NA} 
+    #--&gt; compensate to height of vid that gaze cannot be outside index - otherwise function will crash
+    # CREATE sequence to identify corresponding img of single gaze sample (TEMPORAL lookup)
+    img_frame&lt;-as.numeric(sapply(round(single_df$ts.local),find_frame,y=start_ms,z=end_ms))
+    # --&gt; SALIENCE mapping (use TEMPORAL+SPATIAL info to find salience for each gaze)
+    salience&lt;-mapply(find_salience_value,my_img=img_frame,x_cord=smooth_y_px,y_cord=smooth_x_px, #info: on loading images x and y are exchanged
+                     MoreArgs = list(my_list = all_img)) #provide all_img as MoreArgs as it is not vectorized over (see also ?mapply)
+    print(levels(single_df$id)) #print process
+    return(salience)
+  }
+  
+  list_salience&lt;-lapply(df.list,func_salience_mapping)  
+  
+  #MERGE ET data and salience
+  df.list&lt;-mapply(data.frame,df.list,list_salience,SIMPLIFY = F) #merge et data and salience information
+  df.list&lt;-lapply(df.list,function(x){
+    names(x)[41]&lt;-&#39;motion_salience&#39; #add salience label 
+    x&lt;-x[!is.na(x$motion_salience),] ###REDUCE SIZE remove non_salience information
+    return(x)})  
+  
+  #RBIND list to data.frame
+  df&lt;-do.call(&#39;rbind&#39;,df.list)
+  print(c(&#39;matched ET and salience data for:&#39;,vid_name)) #print to console
+  
+  
+  ##SAVE directly to file to save working memory
+  filename&lt;-paste(home_path,&#39;/PowerFolders/project_video_salience/merged_data/motion_salience/&#39;,vid_name,&#39;_ETmotion_salience.Rdata&#39;,sep = &#39;&#39;)
+  
+  save(df,file=filename)
+  print(paste(&#39;saved:&#39;,vid_name))
+  
+}
+
+#--&gt; RUN FUNCTION - BATCH across all videos and participants ####
+mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_data_paths,vid_name=et_data_names)</code></pre>
+</div>
+</div>
+<div id="preprocessing" class="section level1">
+<h1>preprocessing</h1>
+<ul>
+<li>is currently only displayed for motion salience</li>
+<li>was done analogous for perceptual salience</li>
+</ul>
+<div id="setup-1" class="section level2">
+<h2>setup</h2>
+<pre class="r"><code>### SETUP ####
+# Required packages ##
+
+suppressMessages({
+  
+  require(readxl) #load data
+  require(zoo) #pd preprocessing - na.approx
+  require(mice) #imputation 
+  require(Gmisc) #fastdo.call
+  
+  require(ggplot2)
+  require(sjPlot) #plotting lmer
+  require(sjmisc)
+  require(gridExtra)  
+  
+  require(lme4)
+  require(lmerTest)  
+  require(emmeans)
+  
+  require(MatchIt) #sample matching
+  
+  require(R.matlab) #read AOI data from matlab files
+  require(reshape2) #melt
+  
+})</code></pre>
+<pre><code>Warning: Paket &#39;zoo&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;mice&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;Gmisc&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;Rcpp&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;htmlTable&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;sjPlot&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;sjmisc&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;lme4&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;Matrix&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;lmerTest&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;emmeans&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;MatchIt&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre><code>Warning: Paket &#39;R.matlab&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
+<pre class="r"><code>#check for OS --&gt; define home path (script independent of OS)
+ifelse(Sys.info()[&#39;sysname&#39;]==&#39;Linux&#39;,
+       home_path&lt;-&#39;~&#39;,
+       home_path&lt;-&#39;C:/Users/Nico&#39;)</code></pre>
+<pre><code>        sysname 
+&quot;C:/Users/Nico&quot; </code></pre>
+</div>
+<div id="read-combined-data" class="section level2">
+<h2>read combined data</h2>
+<pre class="r"><code>#READ matched (gaze+ motion salience) data ####
+folder_matched_data&lt;-paste(home_path,&quot;/PowerFolders/project_video_salience/data/merged_data/motion_salience&quot;,sep=&#39;&#39;)
+data_paths&lt;-list.files(path=folder_matched_data, full.names=TRUE)
+
+#loads a data file and prints to screen if successful
+tmp_env&lt;-new.env()
+df_list&lt;-lapply(data_paths,function(x){
+  load(x,envir=tmp_env) #as loads puts df into environment, a temporary envir has to be used to extract the specific object 
+  y&lt;-get(&#39;df&#39;,pos=tmp_env)
+  print(x)
+  return(y)
+}
+)
+rm(tmp_env)</code></pre>
+</div>
+<div id="merge-to-single-data-frame-df" class="section level2">
+<h2>merge to single data frame (df)</h2>
+<pre class="r"><code>#CREATE merged data frame ####
+
+#reduce file sizes by excluding raw gaze/pd data 
+exclude_variables&lt;-c(
+  &#39;raw.Left_3D_REL_x&#39;,
+  &#39;raw.Left_3D_REL_y&#39;,
+  &#39;raw.Left_3D_REL_z&#39;,
+  &#39;raw.Right_3D_REL_x&#39;,
+  &#39;raw.Right_3D_REL_y&#39;,
+  &#39;raw.Right_3D_REL_z&#39;,
+  &#39;raw.Left_x&#39;,
+  &#39;raw.Left_y&#39;,
+  &#39;raw.Right_x&#39;,
+  &#39;raw.Right_y&#39;,
+  &#39;raw.Left_Diameter&#39;,
+  &#39;raw.Right_Diameter&#39;,
+  &#39;raw.Left_Validity&#39;,
+  &#39;raw.Right_Validity&#39;,
+  &#39;rough_left_x&#39;,
+  &#39;rough_left_y&#39;,
+  &#39;rough_right_x&#39;,
+  &#39;rough_right_y&#39;,
+  &#39;smooth_velocity&#39;,
+  &#39;fixation_smooth_pursuit&#39;,
+  &#39;sample&#39;,
+  &#39;timestamp&#39;
+)
+
+df_list&lt;-lapply(df_list,function(x){x&lt;-x[,!(names(x) %in% exclude_variables)]
+return(x)})
+
+#RAM saving method
+# df&lt;-data.frame()
+# for (i in 1:length(df_list)){
+#   df&lt;-rbind(df,df_list[[1]]) #add list element
+#   df_list&lt;-df_list[-1] #remove list element
+#   print(i)
+# }
+
+df&lt;-fastDoCall(&#39;rbind&#39;,df_list)
+rm(df_list)
+
+df&lt;-droplevels(df)
+object.size(df) #---&gt; around 5GB
+
+##rename salience
+#names(df)[19]&lt;-&#39;motion_salience&#39;</code></pre>
+</div>
+<div id="pupil-dilation-preprocessing" class="section level2">
+<h2>pupil dilation preprocessing</h2>
+<p>PD preprocessing according to <a href="https://doi.org/10.3758/s13428-018-1075-y">Kret 2018</a> recommendations</p>
+<pre class="r"><code>#CALCULATE PD variables ####
+
+#calculate mean PD per ID (tpd)
+func.meanpd&lt;-function(x){
+  x$pupil_left[x$pupil_left==-1|x$pupil_left==0]&lt;-NA #set NA values
+  x$pupil_right[x$pupil_right==-1|x$pupil_right==0]&lt;-NA #set NA values
+  pl &lt;- ifelse(is.na(x$pupil_left)==F, x$pupil_left, x$pupil_right)  
+  pr &lt;- ifelse(is.na(x$pupil_right)==F, x$pupil_right, x$pupil_left)  
+  p &lt;- (pl+pr)/2
+  #tpd&lt;-by(p,x$id,mean,na.rm=T)
+  tpd&lt;-aggregate(p,by=list(x$id),FUN=mean,na.rm=T)
+  return(tpd)
+}
+tpd_per_id&lt;-func.meanpd(df)
+names(tpd_per_id)&lt;-c(&#39;id&#39;,&#39;tpd&#39;)
+hist(tpd_per_id$tpd)
+
+#PREPROCESS PD variable
+df_split&lt;-split(df,droplevels(interaction(df$id,df$vid.id)))
+df_split&lt;-lapply(df_split,function(x){x[order(x$ts.local),]}) #order by timestamp
+#function PD preprocessing according to Kret2018:
+func_pd_preprocess&lt;-function(x){
+  #PD preprocessing - according to Kret 2018 recommendations
+  
+  #define variables
+  Left_Diameter&lt;-x$pupil_left
+  Right_Diameter&lt;-x$pupil_right
+  RemoteTime&lt;-x$RemoteTime
+  
+  #contstant for MAD caluclation 
+  constant&lt;-3 ##--&gt; if change speed is higher than constant * median change --&gt; values are excluded
+  #constant&lt;-3 #default value
+  
+  # STEP 1 - exclude invalid data ####
+  pl &lt;- ifelse((Left_Diameter&lt;2|Left_Diameter&gt;8), NA, Left_Diameter)  
+  pr &lt;- ifelse((Right_Diameter&lt;2|Right_Diameter&gt;8), NA, Right_Diameter)  
+  #table(is.na(pl))
+  #table(is.na(pr))
+  # STEP 2 - filtering ####
+  ## A) normalized dilation speed, take into account time jumps with Remotetimestamps: ####
+  #maximum change in pd compared to last and next pd measurement
+  #Left
+  pl.speed1&lt;-diff(pl)/diff(RemoteTime) #compared to last
+  pl.speed2&lt;-diff(rev(pl))/diff(rev(RemoteTime)) #compared to next
+  pl.speed1&lt;-c(NA,pl.speed1)
+  pl.speed2&lt;-c(rev(pl.speed2),NA)
+  pl.speed&lt;-pmax(pl.speed1,pl.speed2,na.rm=T)
+  rm(pl.speed1,pl.speed2)
+  #Right
+  pr.speed1&lt;-diff(pr)/diff(RemoteTime)
+  pr.speed2&lt;-diff(rev(pr))/diff(rev(RemoteTime))
+  pr.speed1&lt;-c(NA,pr.speed1)
+  pr.speed2&lt;-c(rev(pr.speed2),NA)
+  pr.speed&lt;-pmax(pr.speed1,pr.speed2,na.rm=T)
+  rm(pr.speed1,pr.speed2)
+  #median absolute deviation -SPEED
+  #constant&lt;-3
+  pl.speed.med&lt;-median(pl.speed,na.rm=T)
+  pl.mad&lt;-median(abs(pl.speed-pl.speed.med),na.rm = T)
+  pl.treshold.speed&lt;-pl.speed.med+constant*pl.mad #treshold.speed units are mm/microsecond
+  #plot(abs(pl.speed))+abline(h=pl.treshold.speed)
+  pr.speed.med&lt;-median(pr.speed,na.rm=T)
+  pr.mad&lt;-median(abs(pr.speed-pr.speed.med),na.rm = T)
+  pr.treshold.speed&lt;-pr.speed.med+constant*pr.mad #treshold.speed units are mm/microsecond
+  #plot(abs(pr.speed))+abline(h=pr.treshold.speed)
+  #correct pupil dilation for speed outliers
+  pl&lt;-ifelse(abs(pl.speed)&gt;pl.treshold.speed,NA,pl)
+  pr&lt;-ifelse(abs(pr.speed)&gt;pr.treshold.speed,NA,pr)
+  ## B) delete data around blinks - not applied ####
+  ## C) normalized dilation size - median absolute deviation -SIZE ####
+  #applies a two pass approach
+  #first pass: exclude deviation from trend line derived from all samples
+  #second pass: exclude deviation from trend line derived from samples passing first pass
+  #-_&gt; reintroduction of sample that might have been falsely excluded due to outliers
+  #estimate smooth size based on sampling rate
+  smooth.length&lt;-150 #measured in ms
+  #take sampling rate into account (300 vs. 120):
+  #smooth.size&lt;-round(smooth.length/mean(diff(RemoteTime)/1000)) #timestamp resolution in microseconds 
+  smooth.size&lt;-round(smooth.length/median(diff(RemoteTime),na.rm=T)) #timestamp resolution in milliseconds
+  is.even&lt;-function(x){x%%2==0}
+  smooth.size&lt;-ifelse(is.even(smooth.size)==T,smooth.size+1,smooth.size) #make sure to be odd value (see runmed)
+  #Left
+  pl.smooth&lt;-na.approx(pl,na.rm=F,rule=2) #impute missing values with interpolation
+  #pl.smooth&lt;-runmed(pl.smooth,k=smooth.size) #smooth algorithm by running median of 15 * 3.3ms 
+  if(sum(!is.na(pl.smooth))!=0){pl.smooth&lt;-runmed(pl.smooth,k=smooth.size)} #run smooth algo only if not all elements == NA 
+  pl.mad&lt;-median(abs(pl-pl.smooth),na.rm=T)
+  #Right
+  pr.smooth&lt;-na.approx(pr,na.rm=F,rule=2) #impute missing values with interpolation
+  #pr.smooth&lt;-runmed(pr.smooth,k=smooth.size) #smooth algorithm by running median of 15 * 3.3ms 
+  if(sum(!is.na(pr.smooth))!=0){pr.smooth&lt;-runmed(pr.smooth,k=smooth.size)} #run smooth algo only if not all elements == NA 
+  pr.mad&lt;-median(abs(pr-pr.smooth),na.rm=T)
+  #correct pupil dilation for size outliers - FIRST pass
+  pl.pass1&lt;-ifelse((pl&gt;pl.smooth+constant*pl.mad)|(pl&lt;pl.smooth-constant*pl.mad),NA,pl)
+  pr.pass1&lt;-ifelse((pr&gt;pr.smooth+constant*pr.mad)|(pr&lt;pr.smooth-constant*pr.mad),NA,pr)
+  #Left
+  pl.smooth&lt;-na.approx(pl.pass1,na.rm=F,rule=2) #impute missing values with interpolation
+  #pl.smooth&lt;-runmed(pl.smooth,k=smooth.size) #smooth algorithm by running median of 15 * 3.3ms 
+  if(sum(!is.na(pl.smooth))!=0){pl.smooth&lt;-runmed(pl.smooth,k=smooth.size)} #run smooth algo only if not all elements == NA 
+  pl.mad&lt;-median(abs(pl-pl.smooth),na.rm=T)
+  #Right
+  pr.smooth&lt;-na.approx(pr.pass1,na.rm=F,rule=2) #impute missing values with interpolation
+  #pr.smooth&lt;-runmed(pr.smooth,k=smooth.size) #smooth algorithm by running median of 15 * 3.3ms 
+  if(sum(!is.na(pr.smooth))!=0){pr.smooth&lt;-runmed(pr.smooth,k=smooth.size)} #run smooth algo only if not all elements == NA 
+  pr.mad&lt;-median(abs(pr-pr.smooth),na.rm=T)
+  #correct pupil dilation for size outliers - SECOND pass
+  pl.pass2&lt;-ifelse((pl&gt;pl.smooth+constant*pl.mad)|(pl&lt;pl.smooth-constant*pl.mad),NA,pl)
+  pr.pass2&lt;-ifelse((pr&gt;pr.smooth+constant*pr.mad)|(pr&lt;pr.smooth-constant*pr.mad),NA,pr)
+  pl&lt;-pl.pass2
+  pr&lt;-pr.pass2
+  
+  ## D) sparsity filter - not applied ####
+  # STEP 3 - processing valid samples  ####
+  #take offset between left and right into account
+  pd.offset&lt;-pl-pr  
+  pd.offset&lt;-na.approx(pd.offset,rule=2)
+  #mean pupil dilation across both eyes
+  pl &lt;- ifelse(is.na(pl)==FALSE, pl, pr+pd.offset)  
+  pr &lt;- ifelse(is.na(pr)==FALSE, pr, pl-pd.offset)  
+  pd &lt;- (pl+pr)/2
+  # end of function --&gt; return ####
+  #detach(x)
+  return(pd)
+}
+pd_list&lt;-lapply(df_split,func_pd_preprocess)
+
+#add PD to data frame
+df&lt;-fastDoCall(rbind,df_split) #takes very long - rbind.fill or Reduce as alternative
+pd&lt;-fastDoCall(c,pd_list)
+pd&lt;-as.numeric(pd)
+df&lt;-data.frame(df,pd)
+rm(df_split,pd_list,pd)
+
+#df&lt;-merge(df,tpd_per_id,by=&#39;id&#39;)
+#df$rpd&lt;-df$pd/df$tpd</code></pre>
+</div>
+<div id="split-to-saccade-and-fixation-data-sets" class="section level2">
+<h2>split to saccade and fixation data sets</h2>
+<pre class="r"><code>###--&gt; SPLIT to  saccade fixation data sets ####
+
+##split to different data_sets
+df_sac&lt;-df[df$sacade_number!=0,]
+df_fix&lt;-df[df$fixation_number!=0,]
+
+id_levels&lt;-levels(df$id)
+vid_id_levels&lt;-levels(df$vid.id)
+rm(df)
+
+#remove unecessary variables
+df_sac&lt;-df_sac[,!grepl(&#39;fixation&#39;,names(df_sac))]
+df_fix&lt;-df_fix[,!grepl(&#39;saccade&#39;,names(df_fix))]
+df_fix&lt;-df_fix[,!grepl(&#39;sacade&#39;,names(df_fix))]
+
+#add PD information
+df_fix&lt;-merge(df_fix,tpd_per_id,by=&#39;id&#39;)
+df_fix$rpd&lt;-df_fix$pd/df_fix$tpd
+df_sac&lt;-merge(df_sac,tpd_per_id,by=&#39;id&#39;)
+df_sac$rpd&lt;-df_sac$pd/df_sac$tpd</code></pre>
+</div>
+<div id="save-intermediate-data" class="section level2">
+<h2>save intermediate data</h2>
+<pre class="r"><code># ###---&gt; SAVE RAW ####
+# save(df_fix,df_sac,id_levels,vid_id_levels,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;,sep=&#39;&#39;))
+
+#load raw data
+
+load(paste0(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;))</code></pre>
+</div>
+<div id="raw-data-inspection" class="section level2">
+<h2>raw data inspection</h2>
+<pre class="r"><code># number of fixations per participant 
+nobs_fix&lt;-with(df_fix,by(fixation_number,id,function(x){length(unique(x))}))
+summary(nobs_fix)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    1.0   223.0   486.0   471.2   679.5  1047.0 </code></pre>
+<pre class="r"><code>hist(nobs_fix)</code></pre>
+<p><img src="figure/data_preprocessing.Rmd/raw_data_analysis-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#number of saccades per participant
+nobs_sac&lt;-with(df_sac,by(sacade_number,id,function(x){length(unique(x))}))
+summary(nobs_sac)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    1.0   222.5   489.0   471.9   679.0  1044.0 </code></pre>
+<pre class="r"><code>hist(nobs_sac)</code></pre>
+<p><img src="figure/data_preprocessing.Rmd/raw_data_analysis-2.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="add-area-of-interest-data" class="section level2">
+<h2>add area-of-interest data</h2>
+<ul>
+<li>area-of-interest (AOI) data is only available for 50faces, musicbooth, dollhouse video clips (human social videos)</li>
+<li>extracted from a matlab data set (Birbeck College)</li>
+<li>available data sets:
+<ul>
+<li>dollhouse: n=487</li>
+<li>50faces: n= 653</li>
+<li>musicbooth: n=451</li>
+</ul></li>
+</ul>
+<pre class="r"><code>### ADD AOI data (only available for 50faces, musicbooth, dollhouse - 15.12.20) ####
+
+###read AOI data 
+###--&gt; AOI data available for dollhouse: n=487 participants, 50faces:  n= 653, musicbooth: n=451
+
+func_aoi_extract_from_mat&lt;-function(path){
+  
+  #path&lt;-&quot;C:/Users/Nico/PowerFolders/data_LEAP/AOI_data/50faces_results_20200410T181246.mat&quot;
+  mat_aoi&lt;-readMat(path) #read file
+  #mat_aoi&lt;-readMat(&#39;C:/Users/Nico/PowerFolders/data_LEAP/AOI_data/50faces_results_20200410T181246.mat&#39;)
+  aoi_data&lt;-mat_aoi[[&#39;tempScores&#39;]] #actual aoi data
+  
+  #extract aoi data from matlab lists
+  eyes&lt;-aoi_data[[1]][[1]][[2]] 
+  mouth&lt;-aoi_data[[1]][[1]][[4]] 
+  outer_face&lt;-aoi_data[[1]][[1]][[6]] 
+  body&lt;-aoi_data[[1]][[1]][[8]] 
+  face&lt;-aoi_data[[1]][[1]][[10]] 
+  bg_people&lt;-aoi_data[[1]][[1]][[12]] 
+  #tray&lt;-aoi_data[[1]][[1]][[14]] 
+  
+  print(paste(&#39;participants with AOI data: n=&#39;,ncol(eyes)))
+  
+  #id and timestamp data
+  id&lt;-unlist(aoi_data[[2]][[1]][[1]]) #extract id
+  id&lt;-substr(id,1,12)
+  ts&lt;-unlist(aoi_data[[2]][[1]][[2]]) #extract ts
+  #AOIs present information
+  aois_present&lt;-unlist(aoi_data[[2]][[1]][[4]])
+  
+  
+  #function to label and convert data into long format
+  func_label_transform&lt;-function(data,id,ts){
+    colnames(data)&lt;-id
+    rownames(data)&lt;-ts
+    data&lt;-melt(data)
+    return(data)
+  }
+  
+  #repeat function for all AOIs
+  df_eyes&lt;-func_label_transform(eyes,id,ts)
+  df_mouth&lt;-func_label_transform(mouth,id,ts)
+  df_outer_face&lt;-func_label_transform(outer_face,id,ts)
+  df_body&lt;-func_label_transform(body,id,ts)
+  df_face&lt;-func_label_transform(face,id,ts)
+  df_bg_people&lt;-func_label_transform(bg_people,id,ts)
+  #df_tray&lt;-func_label_transform(tray,id,ts)
+  df_aoi_present&lt;-func_label_transform(aois_present,id,ts)
+  
+  #concat to df
+  df_aoi&lt;-data.frame(df_eyes$Var1,df_eyes$Var2,df_eyes$value,df_mouth$value,df_outer_face$value,df_body$value,df_face$value,df_bg_people$value,df_aoi_present$value)
+  names(df_aoi)&lt;-c(&#39;ts&#39;,&#39;id&#39;,&#39;aoi_eyes&#39;,&#39;aoi_mouth&#39;,&#39;aoi_outerface&#39;,&#39;aoi_body&#39;,&#39;aoi_face&#39;,&#39;aoi_bgpeople&#39;,&#39;aois_present&#39;)
+  df_aoi$ts&lt;-df_aoi$ts*1000 #timestamp in ms format
+  df_aoi$id&lt;-as.factor(df_aoi$id) #id as factor
+  
+  return(df_aoi)
+}
+
+df_aoi_dollhouse&lt;-func_aoi_extract_from_mat(path=&quot;C:/Users/Nico/PowerFolders/data_LEAP/AOI_data/dollhouse_results_20200410T183903.mat&quot;)
+df_aoi_50faces&lt;-func_aoi_extract_from_mat(path=&quot;C:/Users/Nico/PowerFolders/data_LEAP/AOI_data/50faces_results_20200410T181246.mat&quot;)
+df_aoi_musicbooth&lt;-func_aoi_extract_from_mat(path=&quot;C:/Users/Nico/PowerFolders/data_LEAP/AOI_data/LEAP_ET_musicbooth_20201214T135846.mat&quot;)
+
+###merge salience and AOI data 
+
+###extract needed RAW data with fixation/salience information
+#load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;,sep=&#39;&#39;))
+df_fix_dollhouse&lt;-df_fix[df_fix$vid.id==&quot;dollhouse.m4v&quot;,]
+df_fix_dollhouse$ts_frame&lt;-floor(df_fix_dollhouse$ts.local/median(diff(df_aoi_dollhouse$ts)))
+df_fix_dollhouse$merger_x&lt;-with(df_fix_dollhouse,interaction(id,ts_frame))
+
+df_fix_50faces&lt;-df_fix[df_fix$vid.id==&quot;50faces.mov&quot;,]
+df_fix_50faces$ts_frame&lt;-floor(df_fix_50faces$ts.local/median(diff(df_aoi_50faces$ts)))
+df_fix_50faces$merger_x&lt;-with(df_fix_50faces,interaction(id,ts_frame))
+
+df_fix_musicbooth&lt;-df_fix[df_fix$vid.id==&quot;musicbooth.mov&quot;,]
+df_fix_musicbooth$ts_frame&lt;-floor(df_fix_musicbooth$ts.local/median(diff(df_aoi_musicbooth$ts)))
+df_fix_musicbooth$merger_x&lt;-with(df_fix_musicbooth,interaction(id,ts_frame))
+
+### in AOI data: convert timestamp to video frame number ---&gt; variable that merges AOI and salience data
+df_aoi_50faces$ts_frame&lt;-floor(df_aoi_50faces$ts/median(diff(df_aoi_50faces$ts)))
+df_aoi_dollhouse$ts_frame&lt;-floor(df_aoi_dollhouse$ts/median(diff(df_aoi_dollhouse$ts)))
+df_aoi_musicbooth$ts_frame&lt;-floor(df_aoi_musicbooth$ts/median(diff(df_aoi_musicbooth$ts)))
+
+df_aoi_50faces$merger_y&lt;-with(df_aoi_50faces,interaction(id,ts_frame))
+df_aoi_dollhouse$merger_y&lt;-with(df_aoi_dollhouse,interaction(id,ts_frame))
+df_aoi_musicbooth$merger_y&lt;-with(df_aoi_musicbooth,interaction(id,ts_frame))
+
+df_aoi_50faces&lt;-df_aoi_50faces[,!(names(df_aoi_50faces) %in% c(&#39;ts&#39;,&#39;id&#39;,&#39;ts_frame&#39;))]
+df_aoi_dollhouse&lt;-df_aoi_dollhouse[,!(names(df_aoi_dollhouse) %in% c(&#39;ts&#39;,&#39;id&#39;,&#39;ts_frame&#39;))]
+df_aoi_musicbooth&lt;-df_aoi_musicbooth[,!(names(df_aoi_musicbooth) %in% c(&#39;ts&#39;,&#39;id&#39;,&#39;ts_frame&#39;))]
+
+###--&gt; MERGE (AOI + fixation salience data)
+df_fix_dollhouse&lt;-merge(df_fix_dollhouse,df_aoi_dollhouse,by.x=&#39;merger_x&#39;,by.y=&#39;merger_y&#39;)
+df_fix_50faces&lt;-merge(df_fix_50faces,df_aoi_50faces,by.x=&#39;merger_x&#39;,by.y=&#39;merger_y&#39;)
+df_fix_musicbooth&lt;-merge(df_fix_musicbooth,df_aoi_musicbooth,by.x=&#39;merger_x&#39;,by.y=&#39;merger_y&#39;)
+
+# with(df_fix_dollhouse,by(motion_salience,aoi_eyes,summary))
+# with(df_fix_50faces,by(motion_salience,mouth_aoi,summary))
+# with(df_fix_musicbooth,by(motion_salience,body_aoi,summary))
+
+#reconcatenate data
+df_fix_aoi&lt;-rbind(df_fix_dollhouse,df_fix_50faces,df_fix_musicbooth)
+df_fix_aoi&lt;-df_fix_aoi[,!(names(df_fix_aoi) %in% c(&#39;merger_x&#39;))]
+
+df_fix&lt;-df_fix[!(df_fix$vid.id %in% c(&quot;musicbooth.mov&quot;,&quot;50faces.mov&quot;,&quot;dollhouse.m4v&quot;)),]
+
+###--&gt; rbind dfs although df_fix_aoi has other variables
+df_fix&lt;-dplyr::bind_rows(df_fix,df_fix_aoi)
+
+###--&gt; save RAW AOI fixation data with salience data
+save(df_fix,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))
+
+# #merged raw data
+#load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;,sep=&#39;&#39;)) 
+# #AOI data merged to salience fixation data (df_fix)
+#load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+</div>
+<div id="aggregate-data-by-fixationsaccades" class="section level2">
+<h2>aggregate data by fixation/saccades</h2>
+<ul>
+<li>data was sampled at 300 Hz, which is now reduced to 1 sample per event (fixation/saccade)</li>
+<li>substantially reduces required size</li>
+</ul>
+<pre class="r"><code>###--&gt; AGGREGATE data by saccade_number and fixation_number to reduce size ####
+
+#change variable to numeric before aggregating
+df_sac$id&lt;-as.numeric(df_sac$id)
+df_sac$vid.id&lt;-as.numeric(df_sac$vid.id)
+df_fix$id&lt;-as.numeric(df_fix$id)
+df_fix$vid.id&lt;-as.numeric(df_fix$vid.id)
+
+#aggregate
+df_sac&lt;-aggregate(df_sac, by=list(interaction(df_sac$sacade_number,df_sac$vid.id,df_sac$id)), FUN=mean,na.rm=T)
+df_sac$id&lt;-as.factor(df_sac$id)
+levels(df_sac$id)&lt;-id_levels
+df_sac$vid.id&lt;-as.factor(df_sac$vid.id)
+levels(df_sac$vid.id)&lt;-vid_id_levels
+
+df_fix&lt;-aggregate(df_fix, by=list(interaction(df_fix$fixation_number,df_fix$vid.id,df_fix$id)), FUN=mean,na.rm=T)
+df_fix$id&lt;-as.factor(df_fix$id)
+levels(df_fix$id)&lt;-id_levels
+df_fix$vid.id&lt;-as.factor(df_fix$vid.id)
+levels(df_fix$vid.id)&lt;-vid_id_levels
+
+###--&gt;several missings in saccade_velocity metrics</code></pre>
+</div>
+<div id="calculate-additional-variables" class="section level2">
+<h2>calculate additional variables</h2>
+<ul>
+<li>currently not used in analysis</li>
+<li>center deviation, relative salience, log-transformed salience</li>
+</ul>
+<pre class="r"><code>## CALCULATE ADDITIONAL VARIABLES ####
+
+##CALCULATE center deviation as measure of gaze
+screen_x&lt;-345 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+screen_y&lt;-259 #MAGIC NUMBER #(see Bast et al., 2020 = 345 width in mm x 259 heigth in mm)
+
+cent_dev_x&lt;-abs(screen_x/2-df_sac$smooth_x)/(screen_x/2)
+cent_dev_y&lt;-abs(screen_y/2-df_sac$smooth_y)/(screen_y/2)
+centdev&lt;-sqrt(cent_dev_x^2+cent_dev_y^2)
+df_sac&lt;-data.frame(df_sac,centdev)
+
+cent_dev_x&lt;-abs(screen_x/2-df_fix$smooth_x)/(screen_x/2)
+cent_dev_y&lt;-abs(screen_y/2-df_fix$smooth_y)/(screen_y/2)
+centdev&lt;-sqrt(cent_dev_x^2+cent_dev_y^2)
+df_fix&lt;-data.frame(df_fix,centdev)
+
+# #calculate relative salience
+# mean_salience&lt;-with(df_sac,by(salience,vid.id,mean,na.rm=T))
+# vid_id&lt;-names(mean_salience)
+# mean_salience&lt;-as.numeric(mean_salience)
+# df_mean_salience&lt;-data.frame(vid_id,mean_salience)
+# df_sac&lt;-merge(df_sac,df_mean_salience,by.x=&#39;vid.id&#39;,by.y =&#39;vid_id&#39;)
+# sal_rel&lt;-with(df_sac,salience/mean_salience)
+# df_sac&lt;-data.frame(df_sac,sal_rel)
+# rm(sal_rel)
+
+##CALCULATE log salience
+df_sac$msal_log&lt;-log(df_sac$motion_salience)
+df_sac$msal_log[df_sac$msal_log&lt;(-6)]&lt;-NA
+
+df_fix$msal_log&lt;-log(df_fix$motion_salience)
+df_fix$msal_log[df_fix$msal_log&lt;(-6)]&lt;-NA</code></pre>
+</div>
+<div id="oculomotor-outlier-exclusion" class="section level2">
+<h2>oculomotor outlier exclusion</h2>
+<pre class="r"><code>## OUTLIER EXCLUSION ####
+
+df_fix&lt;-df_fix[df_fix$fixation_duration&lt;1000 &amp;
+                 df_fix$rpd &lt; 1.6, ]
+
+df_sac&lt;-df_sac[df_sac$saccade_distance&lt;30 &amp;
+                 df_sac$saccade_duration&lt;100 &amp;
+                 df_sac$saccade_velocity_average&lt;700 &amp;   
+                 df_sac$rpd &lt; 1.6, ]
+
+hist(df_fix$fixation_duration)
+hist(df_fix$fixation_rms)
+hist(df_fix$centdev)
+hist(df_fix$rpd)
+
+hist(df_sac$saccade_distance)
+hist(df_sac$saccade_duration)
+hist(df_sac$saccade_velocity_average)
+hist(df_sac$rpd)</code></pre>
+</div>
+<div id="manipulation-check" class="section level2">
+<h2>manipulation check</h2>
+<ul>
+<li>oculomotor function effect on salience estimates</li>
+</ul>
+<pre class="r"><code>## MANIPULATION CHECK: oculomotor metrics --&gt; salience####    
+table(df_sac$vid.id)
+table(df_fix$vid.id)
+
+lmm_model&lt;-lmer(scale(motion_salience)~scale(ts.local)+scale(saccade_duration)+scale(saccade_distance)+scale(rpd)+scale(tpd)+
+                  (1|vid.id)+(1|id),data=df_sac)
+
+
+lmm_model&lt;-lmer(scale(motion_salience)~scale(fixation_duration)+scale(fixation_rms)+scale(ts.local)+scale(rpd)+scale(tpd)+
+                  (1|vid.id)+(1|id),data=df_fix)
+
+lmm_model&lt;-lmer(scale(motion_salience)~scale(aoi_eyes)+scale(aoi_mouth)+scale(ts.local)+
+                  (1|vid.id)+(1|id),data=df_fix)
+
+summary(lmm_model)
+###--&gt; oculomotor metrics number are associated with salience values!
+###---&gt; salience log shows the strongest signals for df saccade</code></pre>
+</div>
+<div id="match-demographic-data" class="section level2">
+<h2>match demographic data</h2>
+<ul>
+<li>add demographic data</li>
+<li>add sensory subgroup data</li>
+<li>add data quality estimation per participant</li>
+</ul>
+<pre class="r"><code>## MATCH  data: demographics + sensorysubgroups + data quality ####
+demfile&lt;-paste(home_path,&quot;/PowerFolders/data_LEAP/corelclinical_final050919/LEAP_t1_Core clinical variables_03-09-19-withlabels.xlsx&quot;,sep=&#39;&#39;)
+df_dem&lt;-read_excel(demfile, 1, col_names = T, na = c(&#39;999&#39;,&#39;777&#39;))
+
+selected_vars&lt;-c(&#39;subjects&#39;,&#39;t1_group&#39;,&#39;t1_diagnosis&#39;,&#39;t1_asd_thresh&#39;,&#39;t1_site&#39;,
+                 &#39;t1_schedule_adj&#39;,&#39;t1_sex&#39;,&#39;t1_ageyrs&#39;,
+                 &#39;t1_viq&#39;,&#39;t1_piq&#39;,&#39;t1_fsiq&#39;,&#39;t1_ssp_total&#39;,&#39;t1_rbs_total&#39;,
+                 &quot;t1_srs_rawscore_combined&quot;,&quot;t1_css_total_all&quot;,&quot;t1_sa_css_all&quot;,&quot;t1_rrb_css_all&quot;,
+                 &quot;t1_adi_social_total&quot;,&quot;t1_adi_communication_total&quot;,&quot;t1_adi_rrb_total&quot;)
+
+df_dem_select&lt;-df_dem[,names(df_dem) %in% selected_vars]
+
+####--&gt; mental health comorbidities ##
+adhd_inatt&lt;-with(df_dem,ifelse(!is.na(t1_adhd_inattentiv_parent),t1_adhd_inattentiv_parent,t1_adhd_inattentiv_self)) #get ADHD rating from parent and self ratings
+adhd_hyper&lt;-with(df_dem,ifelse(!is.na(t1_adhd_hyperimpul_parent),t1_adhd_hyperimpul_parent,t1_adhd_hyperimpul_self)) #get ADHD rating from parent and self ratings
+
+
+anx_beck&lt;-with(df_dem,ifelse(!is.na(t1_beck_anx_adulta_self),t1_beck_anx_adulta_self,
+                             ifelse(!is.na(t1_beck_anx_youthb_self),t1_beck_anx_youthb_self,t1_beck_anx_youthcd_parent
+                             ))) #get ADHD rating from parent and self ratings
+
+dep_beck&lt;-with(df_dem,ifelse(!is.na(t1_beck_dep_adulta_self),t1_beck_dep_adulta_self,
+                             ifelse(!is.na(t1_beck_dep_youthb),t1_beck_dep_youthb,
+                                    ifelse(!is.na(t1_beck_dep_youthcd),t1_beck_dep_youthcd,t1_beck_dep_adultd_parent)
+                             ))) #get ADHD rating from parent and self ratings
+
+
+#MICE imputation of mental health covariates based on sex, age, iq, group, and other covariates
+data_imp&lt;-mice(data.frame(df_dem_select,adhd_inatt,adhd_hyper,anx_beck,dep_beck)[,c(&#39;adhd_inatt&#39;,&#39;adhd_hyper&#39;,&#39;anx_beck&#39;,&#39;dep_beck&#39;,&#39;t1_ageyrs&#39;,&#39;t1_fsiq&#39;,&#39;t1_sex&#39;,&#39;t1_diagnosis&#39;)],m=5,maxit=50,meth=&#39;pmm&#39;,seed=500, printFlag = F)
+df_imputed&lt;-complete(data_imp,5)[,c(&#39;adhd_inatt&#39;,&#39;adhd_hyper&#39;,&#39;anx_beck&#39;,&#39;dep_beck&#39;)]
+df_dem_select&lt;-data.frame(df_dem_select,df_imputed)
+
+#--&gt;MERGE - data + demographics + comborbidities
+df_sac&lt;-merge(df_sac,df_dem_select,by.x=&#39;id&#39;,by.y = &#39;subjects&#39;)
+df_fix&lt;-merge(df_fix,df_dem_select,by.x=&#39;id&#39;,by.y = &#39;subjects&#39;)
+
+df_fix$id&lt;-droplevels(df_fix$id)
+df_sac$id&lt;-droplevels(df_sac$id)
+
+###MATCH sensory subgroups 
+df_ssp&lt;-read_xlsx(paste(home_path,&quot;/PowerFolders/data_LEAP/LEAP_t1_sensorysubgroupsTILLMANN.xlsx&quot;,sep=&#39;&#39;))
+df_sac&lt;-merge(df_sac,df_ssp,by.x=&#39;id&#39;,by.y=&#39;subjects&#39;)
+df_fix&lt;-merge(df_fix,df_ssp,by.x=&#39;id&#39;,by.y=&#39;subjects&#39;)
+
+###MATCH data quality
+df_quality&lt;-read_xlsx(paste(home_path,&#39;/PowerFolders/Paper_AIMS-LEAP_ETcore/LEAP 672+60 Cluster and quality scores.xlsx&#39;,sep=&#39;&#39;))
+df_quality&lt;-df_quality[,c(&#39;ParticipantID&#39;,&#39;Cluster&#39;,&#39;SR&#39;,&#39;Accuracy&#39;,&#39;Precision&#39;,&#39;Flicker&#39;)]
+df_sac&lt;-merge(df_sac,df_quality,by.x=&#39;id&#39;,by.y=&#39;ParticipantID&#39;)
+df_fix&lt;-merge(df_fix,df_quality,by.x=&#39;id&#39;,by.y=&#39;ParticipantID&#39;)</code></pre>
+</div>
+<div id="add-scenes-data" class="section level2">
+<h2>add scenes data</h2>
+<pre class="r"><code>## ADD scenes data (incl. ts.scene) ####
+
+#scenes are defined by visual inspection of videos (camera change/cut == new scene)
+df_scenes&lt;-read.csv(paste(home_path,&quot;/PowerFolders/project_video_salience/video_stimuli_scenes.csv&quot;,sep=&#39;&#39;),header=T,sep=&#39;;&#39;)
+
+# fps&lt;-25 #standard for all videos? --&gt; no: artist, musicbooth, dollhouse with 24fps 
+# if(vid_name %in% c(&#39;artist&#39;,&#39;musicbooth&#39;,&#39;dollhouse&#39;)){fps&lt;-24}
+scene_time_onset&lt;-with(df_scenes,ifelse(vid.id %in% c(&#39;artist&#39;,&#39;musicbooth&#39;,&#39;dollhouse&#39;),
+                                        scene_onset_frame/24*1000,
+                                        scene_onset_frame/25*1000))
+
+df_scenes&lt;-data.frame(df_scenes,scene_time_onset)
+#df_scenes&lt;-droplevels(df_scenes[!df_scenes$vid.id == &#39;musicbooth.mov&#39;,]) #remove as this movie was not gaze-salience matched - 20.10.20
+
+#split by video
+df_fix_split&lt;-split(df_fix,df_fix$vid.id)
+df_sac_split&lt;-split(df_sac,df_sac$vid.id)
+df_scenes_split&lt;-split(df_scenes,df_scenes$vid.id)
+
+#sort
+df_fix_split&lt;-df_fix_split[sort(names(df_fix_split))]
+df_sac_split&lt;-df_sac_split[sort(names(df_sac_split))]
+df_scenes_split&lt;-df_scenes_split[sort(names(df_scenes_split))]
+
+#find scene nr
+func_find_scene&lt;-function(x,y){which(x&gt;=y &amp; x&lt;(c(y[-1],1000000)))}
+func_find_scene_split&lt;-function(i,j){sapply(i$ts.local,func_find_scene,y=j$scene_time_onset)}
+#find scene onset (ms)
+func_find_scene_onset&lt;-function(x,y){y[which(x&gt;=y &amp; x&lt;(c(y[-1],1000000)))]}
+func_find_scene_onset_split&lt;-function(i,j){sapply(i$ts.local,func_find_scene_onset,y=j$scene_time_onset)}
+#find scene category?
+func_find_scene_cat&lt;-function(x,y,z){z[which(x&gt;=y &amp; x&lt;(c(y[-1],1000000)))]}
+func_find_scene_cat_split&lt;-function(i,j){sapply(i$ts.local,func_find_scene_cat,y=j$scene_time_onset,z=j$scene_cat)}
+
+#match to data
+vid_scene_nr&lt;-mapply(func_find_scene_split,df_fix_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_nr&lt;-fastDoCall(c,vid_scene_nr)
+vid_scene_onset&lt;-mapply(func_find_scene_onset_split,df_fix_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_onset&lt;-fastDoCall(c,vid_scene_onset)
+vid_scene_cat&lt;-mapply(func_find_scene_cat_split,df_fix_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_cat&lt;-fastDoCall(c,vid_scene_cat)
+df_fix&lt;-fastDoCall(rbind,df_fix_split)
+df_fix&lt;-data.frame(df_fix,vid_scene_nr,vid_scene_cat)
+df_fix$ts.scene&lt;-df_fix$ts.local-vid_scene_onset #--&gt;calculate scene timestamp variable
+
+vid_scene_nr&lt;-mapply(func_find_scene_split,df_sac_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_nr&lt;-fastDoCall(c,vid_scene_nr)
+vid_scene_onset&lt;-mapply(func_find_scene_onset_split,df_sac_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_onset&lt;-fastDoCall(c,vid_scene_onset)
+vid_scene_cat&lt;-mapply(func_find_scene_cat_split,df_sac_split,df_scenes_split,SIMPLIFY = F)
+vid_scene_cat&lt;-fastDoCall(c,vid_scene_cat)
+df_sac&lt;-fastDoCall(rbind,df_sac_split)
+df_sac&lt;-data.frame(df_sac,vid_scene_nr,vid_scene_cat)
+df_sac$ts.scene&lt;-df_sac$ts.local-vid_scene_onset #--&gt;calculate scene timestamp variable
+
+rm(df_fix_split,df_sac_split)
+
+plot(density(df_sac$ts.scene))
+plot(density(df_fix$ts.scene))</code></pre>
+</div>
+<div id="calculate-aggregated-data-frame" class="section level2">
+<h2>calculate aggregated data frame</h2>
+<pre class="r"><code>## CALCULATE aggregated data frame ####
+df_sac_numeric&lt;-df_sac[,!names(df_sac) %in% c(&#39;id&#39;,&#39;Group.1&#39;,&#39;vid.id&#39;,&#39;t1_group&#39;,&#39;t1_diagnosis&#39;,&#39;t1_asd_thresh&#39;,&#39;t1_site&#39;,&#39;t1_schedule_adj&#39;,&#39;t1_sex&#39;)]
+df_fix_numeric&lt;-df_fix[,!names(df_fix) %in% c(&#39;id&#39;,&#39;Group.1&#39;,&#39;vid.id&#39;,&#39;t1_group&#39;,&#39;t1_diagnosis&#39;,&#39;t1_asd_thresh&#39;,&#39;t1_site&#39;,&#39;t1_schedule_adj&#39;,&#39;t1_sex&#39;)]
+df_fix_numeric&lt;-df_fix_numeric[,!names(df_fix_numeric) %in% names(df_sac_numeric) | names(df_fix_numeric) %in% c(&#39;ts.scene&#39;)]
+
+df_sac_numeric_agg&lt;-aggregate(df_sac_numeric[df_sac_numeric$ts.scene&lt;10000,],by=df_sac[df_sac_numeric$ts.scene&lt;10000,][&#39;id&#39;],mean,na.rm=T)    
+df_fix_numeric_agg&lt;-aggregate(df_fix_numeric[df_fix_numeric$ts.scene&lt;10000,],by=df_fix[df_fix_numeric$ts.scene&lt;10000,][&#39;id&#39;],mean,na.rm=T)    
+df_numeric_agg&lt;-merge(df_sac_numeric_agg,df_fix_numeric_agg,by=&#39;id&#39;)
+
+df_character&lt;-df_sac[,names(df_sac) %in% c(&#39;id&#39;,&#39;t1_group&#39;,&#39;t1_diagnosis&#39;,&#39;t1_asd_thresh&#39;,&#39;t1_site&#39;,&#39;t1_schedule_adj&#39;,&#39;t1_sex&#39;)]
+df_character_agg&lt;-unique(df_character)      
+df_agg&lt;-merge(df_numeric_agg,df_character_agg,by=&#39;id&#39;)
+df_agg&lt;-df_agg[,!names(df_agg) %in% c(&#39;ts.scene.x&#39;,&#39;ts.scene.y&#39;)]
+
+###--&gt;n=544
+
+## OUTLIER exclusion of aggregated DF #
+
+hist(df_agg$saccade_duration) #exclude outlier
+hist(df_agg$saccade_distance)
+hist(df_agg$saccade_velocity_average)
+hist(df_agg$fixation_duration)
+hist(df_agg$fixation_rms)
+hist(df_agg$motion_salience)
+hist(df_agg$msal_log)
+hist(df_agg$rpd) #exclude outlier
+
+df_agg$saccade_duration&lt;-ifelse(df_agg$saccade_duration&gt;45,NA,df_agg$saccade_duration)
+df_agg$rpd&lt;-ifelse(df_agg$rpd&gt;1.1,NA,df_agg$rpd)
+df_agg$rpd&lt;-ifelse(df_agg$rpd&lt;0.9,NA,df_agg$rpd)</code></pre>
+</div>
+<div id="save-preprocessed-data" class="section level2">
+<h2>save preprocessed data</h2>
+<pre class="r"><code>save(df_agg,df_scenes,df_fix,df_sac,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
