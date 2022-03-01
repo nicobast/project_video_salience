@@ -32,8 +32,16 @@ knitr::opts_chunk$set(echo = FALSE)
   require(sjmisc)
   require(gridExtra)#combine plots
   require(kableExtra) #nice tables
+  require(hexbin) # gaze location heatmaps
+  require(grid)   #textgrob in grid arrange
   #require(magick) #table formatting with kable_extra   
-    
+  
+    #salience information  
+  require(readbitmap) #read image data
+  require(gtools) #sort file paths alphanumerically - mixedsort
+  require(readr) #parse_number
+  require(RColorBrewer) #color palettes
+
    #models  
   require(lme4)
   require(lmerTest)  
@@ -50,16 +58,22 @@ knitr::opts_chunk$set(echo = FALSE)
   #graphic parameters
   theme_set(theme_bw())
   
+  #define color palette
+  custom_video_category_colors <- c(brewer.pal(3, "Dark2")[2],brewer.pal(3, "Dark2")[1])
+  custom_group_colors <- c(brewer.pal(3, "Dark2")[3],brewer.pal(4, "Dark2")[4])
+  custom_pupillary_component_colors <- c(brewer.pal(3, "Set1")[1],brewer.pal(3, "Set1")[2])
+  
   #check for OS --> define home path (script independent of OS)
   ifelse(Sys.info()['sysname']=='Linux',
          home_path<-'~',
          home_path<-'C:/Users/Nico')
 ```
+
 ```{r load_preprocessed_data}
 
 ##load preprocessed data (see python salience extraction, preprocessing1-3) ####
-  path_to_data<-"/PowerFolders/data_LEAP"
-  load(file=paste0(home_path,path_to_data,"/gaze_motionsalience_aggregate_merged_151220.Rdata"))
+  path_to_external_data<-"/PowerFolders/data_LEAP"
+  load(file=paste0(home_path,path_to_external_data,"/gaze_motionsalience_aggregate_merged_151220.Rdata"))
 
 ```
 
@@ -298,14 +312,16 @@ variable is used in CFA
 
 ```
 
+
 ```{r workspace_cleanup}
 ## CLEAN UP ENVIRONMENT ####
-      rm(list=setdiff(ls(), c('df','df_agg','df_sample','df_fix','df_sac','df_scenes')))
+      rm(list=setdiff(ls(), c('df','df_agg','df_sample','df_fix','df_sac','df_scenes',
+                              'custom_video_category_colors','custom_group_colors',
+                              'custom_pupillary_component_colors','home_path')))
 
 ```
 
 # data selection
-
 ## define scene duration
 
 ```{r scenes_duration, echo=T}
@@ -318,7 +334,7 @@ variable is used in CFA
   abline(v=5000,lty=2)
   
       #create figure scene duration
-      tiff(file="manuscript/figures/figure_sceneduration.tiff", # create a file in tiff format in current working directory
+      tiff(file="manuscript/supplements/figure_sceneduration.tiff", # create a file in tiff format in current working directory
       width=6, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
       
       hist(diff(df_scenes$scene_time_onset)[diff(df_scenes$scene_time_onset)>0 & diff(df_scenes$scene_time_onset)<20000],30,
@@ -353,9 +369,7 @@ variable is used in CFA
     
 ```
 
-## prepare data 
-
-### prepare data set
+## prepare data set
 
 calcualte additional required variables. scaling of variables
 
@@ -392,7 +406,45 @@ calcualte additional required variables. scaling of variables
   deg<-3
 ```
 
-### extract pupillary components
+## screen attention
+
+```{r screen_attention}
+
+  #total screen attention
+
+  id_sum<-unlist(attr(with(df_model,by(id,droplevels(interaction(id,fixation_number)),head,n=1)),'dimnames'))
+  id_sum<-as.factor(substr(id_sum,1,12))
+  
+
+  fixation_duration_sum<-as.numeric(with(df_model,by(fixation_duration,droplevels(interaction(id,fixation_number)),
+                                                     sum)))
+  fixation_duration_sum<-as.numeric(by(fixation_duration_sum,id_sum,sum))
+  
+  saccade_duration_sum<-as.numeric(with(df_model,by(saccade_duration,droplevels(interaction(id,fixation_number)),
+                                                     sum)))
+  
+  saccade_duration_sum<-as.numeric(by(saccade_duration_sum,id_sum,sum))
+  
+  fixation_duration_sum<-fixation_duration_sum+saccade_duration_sum
+  
+  id_sum<-by(id_sum,id_sum,head,n=1)  
+  id_sum<-labels(id_sum)
+  df_screen_att<-data.frame(fixation_duration_sum,id_sum)
+  
+  df_sample<-merge(df_sample,df_screen_att,by.x='id',by.y='id_sum')
+ 
+  # screen attention relative to total scene duration
+  
+  df_scenes$vid_scene<-with(df_scenes,paste(vid.id,scene_nr,sep='.'))
+  df_scenes$scene_duration<-c(diff(df_scenes$scene_time_onset),0)
+  df_scenes$scene_duration[df_scenes$scene_duration<=0]<-2500
+  df_scenes$scene_duration[df_scenes$scene_duration>5000]<-5000 #cut to analyzed duration
+  total_possible_screen_time<-sum(df_scenes$scene_duration[which(df_scenes$vid_scene %in% df_model$vid_scene)])/1000
+  
+
+```
+
+## extract pupillary components
 
 ```{r PCA_pupillary_response}
 
@@ -434,12 +486,15 @@ calcualte additional required variables. scaling of variables
    #figure PCA loadings
   g1<-ggplot(data=data.frame(loads,labels,id),aes(x=id*100,y=loads,group=labels,color=labels,fill=labels))+ 
     geom_smooth(se=F) +theme_bw() +ggtitle('PCA: Factor Loadings') + theme(legend.position = "none",axis.title.x=element_blank()) +
-    annotate('text', x=3000, y=0.8, color='#F8766D' ,label='RC1')+
-    annotate('text', x=3000, y=0.5, color='#00BFC4' ,label='RC2')
+    annotate('text', x=3000, y=0.8, color=custom_pupillary_component_colors[1] ,label='RC1')+
+    annotate('text', x=3000, y=0.5, color=custom_pupillary_component_colors[2] ,label='RC2')+
+    scale_color_manual(values = custom_pupillary_component_colors)+
+    scale_fill_manual(values = custom_pupillary_component_colors)
     
-  g2<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC1))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color='#F8766D')+theme(axis.title.y =   element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('Early Pupillary Response (PR1)')
+    
+  g2<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC1))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color=custom_pupillary_component_colors[1])+theme(axis.title.y =   element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('Early Pupillary Response (PR1)')
   
-g3<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC2))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color='#00BFC4')+theme(axis.title.y = element_blank(),axis.title.x =  element_blank(),legend.position = "none")+ggtitle('Late Pupillary Response (PR2)')
+g3<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC2))+geom_smooth(se=F,method='lm', formula = y ~ x + poly(x,3),color=custom_pupillary_component_colors[2])+theme(axis.title.y = element_blank(),axis.title.x =  element_blank(),legend.position = "none")+ggtitle('Late Pupillary Response (PR2)')
 
 
   tiff(file="manuscript/figures/figure_factorloads.tiff", # create a file in tiff format in current working directory
@@ -450,8 +505,7 @@ g3<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC2))+geom_smooth(se=F,method='lm', for
   dev.off()          
 ```
 
-# results
-
+# RESULTS
 ## define function p-correction
 
 ```{r func_p_correction}
@@ -468,7 +522,100 @@ number_of_variables<-3
 
 ```
 
-## supporting analyses
+## SUPPORTING ANALYSES
+### gaze location comparison
+
+```{r compare_gaze_location_between_groups, cache=F}
+
+
+df$group<-ifelse(df$t1_diagnosis=='ASD','ASD','TD')
+
+## create figure elements (for each video)
+gg_list<-list()
+
+for(i in levels(df$vid.id)){
+  
+  gg_list[[i]]<-ggplot(df[df$vid.id==i,],aes(x=fixation_x,y=fixation_y))+
+  geom_hex(bins=30)+scale_fill_gradientn(colours=rev(rainbow(3)))+
+  theme_bw()+
+  #theme_void()+ #remove axis and rect
+  #theme(axis.title.x=element_blank(),axis.title.y=element_blank(),legend.position="none")+
+  labs(title=i)+ #add title as cideo name
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position="none", #remove legends
+        plot.title = element_text(size = 9, face = "italic"))+
+  scale_y_reverse()+ #reverse scale as origin point of eye tracking data is in upper left corner
+  facet_wrap(~group)
+  
+}
+
+#levels(df$vid.id)
+
+## extract legend
+
+#note - legend annotation is hardcoded (based on number of gazes)
+legend_data<-ggplot(df[df$vid.id=='50faces.mov',],aes(x=fixation_x,y=fixation_y))+
+  geom_hex(bins=30)+
+  scale_fill_gradientn(colours=rev(rainbow(3)),
+                       name='number of gazes',breaks=c(0,75,150),
+                       labels=c("low","average","high"),limits=c(0,150))+
+   theme(legend.key.size = unit(0.5, 'cm'),
+         legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'),
+         legend.title = element_text(size=10))
+
+g_legend<-function(x){
+        tmp <- ggplot_gtable(ggplot_build(x))
+        leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend <- tmp$grobs[[leg]]
+        return(legend)}
+
+mylegend<-g_legend(legend_data)
+
+##--> plot figure
+tiff(file="manuscript/figures/figure_gaze_behavior_between_groups.tiff", # create a file in tiff format in current working directory
+     width=5.5, height=7.5, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+
+
+grid.arrange(
+  arrangeGrob(gg_list[[7]],gg_list[[8]],gg_list[[1]],
+              gg_list[[2]],gg_list[[5]],ncol=1,
+              top=textGrob("non-human videos", gp=gpar(fontsize=16,font=1))),
+  arrangeGrob(gg_list[[3]],gg_list[[4]],gg_list[[6]],
+              gg_list[[9]],mylegend,ncol=1,
+              top=textGrob("human videos", gp=gpar(fontsize=16,font=1))),
+  ncol=2)
+
+dev.off()
+
+
+```
+
+
+### absolute pupil size between groups
+
+```{r pupil_size_between_groups}
+
+tiff(file="manuscript/supplements/figure_pupilsize.tiff", # create a file in tiff format in current working directory
+    width=6, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+    
+ ggplot(df_model,aes(x=ts.scene,y=pd,group=interaction(t1_diagnosis,vid_social),color=t1_diagnosis,lty=vid_social))+
+  geom_smooth()+
+  scale_linetype_discrete(name='video category',labels=c('non-human','human'))+
+  scale_color_discrete(name='group',labels=c('ASD','TD'))+
+  ylab('pupil size (mm)')+
+  xlab('scene duration (ms)')
+ 
+ dev.off()
+
+
+```
+
+
 ### polynomial fit comparison
 
 ```{r polynomial_fit_comparison}
@@ -516,6 +663,388 @@ number_of_variables<-3
 ```
 
 
+### salience estimation 
+
+- perceptual and motion salience is calculated and saved to file, will not be evaluated on knit
+
+```{r estimate_perceptual_and_motion_salience, eval=F}
+#salience data paths####
+salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_salience/")
+salience_data_paths<-list.files(path=salience_paths, full.names=T)
+salience_data_names<-list.files(path=salience_paths)
+
+## READ perceptual salience data and EXTRACT mean over time ####
+salience<-as.list(0)
+for (i in 1:length(salience_data_paths)){
+all_img_paths<-list.files(salience_data_paths[i], full.names = T)
+all_img_paths<-mixedsort(all_img_paths) #sort file list
+
+        #object 7 has memory overflow with 32gb --> thus split
+        if(i==7){all_img<-lapply(all_img_paths[1:1000],read.bitmap)
+                salience_71<-sapply(all_img,mean)
+                rm(all_img)
+                all_img<-lapply(all_img_paths[1001:1851],read.bitmap) 
+                salience_72<-sapply(all_img,mean)
+                salience_7<-c(salience_71,salience_72)
+                salience[[i]]<-salience_7}  
+        
+        if(i!=7){all_img<-lapply(all_img_paths,read.bitmap) 
+                salience[[i]]<-sapply(all_img,mean)} 
+
+}
+
+names(salience)<-salience_data_names
+
+save(salience,file='data/perceptual_salience.Rdata')
+                
+                # #plot perceptul salience
+                # data_plot_salience<-data.frame(1:length(salience[[1]])/25,salience[[1]])
+                # names(data_plot_salience)<-c('time','salience')
+                # 
+                #         ggplot(data=data_plot_salience,
+                #                aes(x=time,y=salience))+geom_smooth()+theme_bw()
+                # 
+                #         qplot(x=(1:length(salience[[1]]))/25,y=salience[[1]],geom='smooth')
+
+  
+       
+
+## READ motion salience and extract mean over time ####
+        
+salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/motion_salience/")
+salience_data_paths<-list.files(path=salience_paths, full.names=T)
+salience_data_names<-list.files(path=salience_paths)
+
+#READ salience data as images (see python script) (for each video)
+#all_img_paths<-list.files(salience_data_paths, full.names = T, recursive=T) #change to recursive as motion salience is split to individual scenes of movie
+all_scene_paths<-list.files(salience_data_paths, full.names = T) 
+motion_salience<-as.list(0)
+for (i in 1:length(all_scene_paths)){
+
+      #for very long scene, split to prevent memory overflow  
+      if(i==72){all_img_paths<-list.files(all_scene_paths[i], full.names = T)
+                all_img_paths<-mixedsort(all_img_paths) #sort file list
+                
+                all_img<-lapply(all_img_paths[1:850],read.bitmap) 
+                motion_salience_p1<-sapply(all_img,mean)
+                rm(all_img)
+                all_img<-lapply(all_img_paths[851:1731],read.bitmap) 
+                motion_salience_p2<-sapply(all_img,mean)
+                
+                motion_salience[[i]]<-c(motion_salience_p1,motion_salience_p2)
+                print(paste0('processed: ',all_scene_paths[i]))}
+  
+  
+      if(i!=72){all_img_paths<-list.files(all_scene_paths[i], full.names = T)
+                all_img_paths<-mixedsort(all_img_paths) #sort file list
+                all_img<-lapply(all_img_paths,read.bitmap) 
+                motion_salience[[i]]<-sapply(all_img,mean)
+                print(paste0('processed: ',all_scene_paths[i]))}
+}
+
+all_scene_names<-list.files(salience_data_paths) 
+names(motion_salience)<-all_scene_names
+
+save(motion_salience,file='data/motion_salience.Rdata')
+
+#histogram of motions salience
+#motion_salience_all_data<-unlist(motion_salience)
+#motion_salience_all_data[motion_salience_all_data==1]<-NA
+#hist(motion_salience_all_data[motion_salience_all_data<0.5],50)
+
+```
+
+```{r combine_perceptual_and_motion_salience}
+
+
+##create data frame from salience data
+
+### data frame - perceptual salience 
+load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/perceptual_salience.Rdata'))
+salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_salience/")
+salience_data_paths<-list.files(path=salience_paths, full.names=T)
+all_img_paths<-list.files(salience_data_paths, full.names = T)
+all_img_paths<-mixedsort(all_img_paths) #sort file list
+
+frame_number<-substr(all_img_paths,1,nchar(all_img_paths)-4)
+frame_number<-substr(frame_number,nchar(frame_number)-5,nchar(frame_number))
+frame_number<-parse_number(frame_number)
+frame_number<-frame_number+1 #change due to Phyton numbering (starting with 0)
+
+salience<-salience[order(c(1:7,9,8))] #change order of Pingu video due to alphanumeric sorting
+perceptual_salience_movie_name<-rep(names(salience),sapply(salience,length))
+
+df_perceptual_salience<-data.frame(unlist(salience),frame_number,perceptual_salience_movie_name) 
+
+#data frame - motion salience
+load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/motion_salience.Rdata'))
+value<-unlist(motion_salience)
+sequence<-rep(names(motion_salience),sapply(motion_salience,length))
+frame<-unlist(sapply(motion_salience,seq_along))
+movie_name<-substr(sequence,1,7)
+video_category<-ifelse(movie_name %in% c('50faces','dollhou','musicbo'),'human','non-human')
+
+df_motion_salience<-data.frame(value,sequence,
+                               frame,
+                               movie_name,
+                               video_category,
+                               stringsAsFactors=F) #string as factors to allow sorting
+
+df_motion_salience<-df_motion_salience[mixedorder(df_motion_salience$sequence),] #sort alphanumerically
+df_motion_salience$frame_number<-unlist(sapply(as.list(table(df_motion_salience$movie_name)),seq_len)) #add frame number
+
+df_motion_salience$movie_name<-as.factor(df_motion_salience$movie_name)
+
+salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/motion_salience/")
+salience_data_paths<-list.files(path=salience_paths, full.names=T)
+salience_data_names<-list.files(path=salience_paths)
+levels(df_motion_salience$movie_name)<-salience_data_names
+
+
+## MERGE perceptual salience and motion salience####
+df_perceptual_salience$merger_p<-paste0(df_perceptual_salience$perceptual_salience_movie_name,
+                                        df_perceptual_salience$frame_number)
+df_motion_salience$merger_m<-paste0(df_motion_salience$movie_name,
+                                    df_motion_salience$frame_number)
+
+df_salience_metrics<-merge(df_motion_salience,df_perceptual_salience,by.x='merger_m',by.y='merger_p',all.x=T)
+df_salience_metrics<-df_salience_metrics[,1:8]
+names(df_salience_metrics)<-c('merger_id','motion_salience','sequence','frame_sequence','movie_name','video_category','frame_movie','perceptual_salience')
+
+##--> correlation of perceptual and motion salience ####
+
+with(df_salience_metrics,cor(motion_salience,perceptual_salience,use='pairwise.complete.obs'))
+
+
+```
+
+
+### luminance estimation 
+
+based on this [conversion](https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color)
+
+- step one: convert RGB values to relative values (is already done)
+- step two: convert relative values to a linear value (RGB values are gamma-encoded with a power curve)
+- step three: caculate LUMINANCE by sRGB coefficient
+
+NOTE: use of for loop which is very slow (>1 hour) but does not overflow memory
+
+```{r luminance_caluclation, eval=F}
+
+#load RGB images
+rgb_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_pics/")
+rgb_data_paths<-list.files(path=rgb_paths, full.names=T)
+rgb_data_names<-list.files(path=rgb_paths)
+
+## READ rgb data over time and estimate luminance####
+
+#NOTE: use of for loop which is very slow (>1 hour) but does not overflow memory
+
+#loop across all videos 
+#for (i in 1:length(rgb_data_paths)){
+luminance_data<-as.list(0)
+for (i in 1:length(rgb_data_paths)){
+all_img_of_one_video<-list.files(rgb_data_paths[i], full.names = T)
+all_img_of_one_video<-mixedsort(all_img_of_one_video) #sort file list
+
+    #loop across all images of a video
+    luminance_data_of_one_video<-as.numeric()
+    for(j in 1:length(all_img_of_one_video)){
+      #read one image
+      rgb_data<-read.bitmap(all_img_of_one_video[j])
+      #step2 - convert relative values to a linear value (RGB values are gamma-encoded with a power curve):
+      rgb_linear_values<-ifelse(rgb_data<=0.04045,
+                                rgb_data/12.92,
+                                ((rgb_data+0.055)/1.055)^2.4) #predefined formula
+      #step3 - caculate LUMINANCE by sRGB coefficient:
+      luminance_image<-(rgb_linear_values[,,1]*0.2126)+(rgb_linear_values[,,2]*0.7152)+(rgb_linear_values[,,3]*0.0722)
+      #mean luminance of an image:
+      print(paste0('video: ',i,' image: ',j))
+      luminance_data_of_one_video[j]<-mean(luminance_image)
+    }
+
+luminance_data[[i]]<-luminance_data_of_one_video    
+}
+
+names(luminance_data)<-rgb_data_names
+save(luminance_data,file= 'data/luminance_data.Rdata')
+
+```
+
+
+```{r luminance_data_frame}
+
+#create luminance data frame
+load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/luminance_data.Rdata'))
+rgb_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_pics/")
+rgb_data_paths<-list.files(path=rgb_paths, full.names=T)
+all_img_paths<-list.files(rgb_data_paths, full.names = T)
+all_img_paths<-mixedsort(all_img_paths) #sort file list
+
+frame_number<-substr(all_img_paths,1,nchar(all_img_paths)-4)
+frame_number<-substr(frame_number,nchar(frame_number)-5,nchar(frame_number))
+frame_number<-parse_number(frame_number)
+frame_number<-frame_number+1 #change due to Phyton numbering (starting with 0)
+
+luminance_data<-luminance_data[order(c(1:7,9,8))] #change order of Pingu video due to alphanumeric sorting
+luminance_data_movie_name<-rep(names(luminance_data),sapply(luminance_data,length))
+
+df_luminance<-data.frame(unlist(luminance_data),frame_number,luminance_data_movie_name)
+
+#merge luminance with salience data --> to get sequence data
+df_luminance$merger_s<-paste0(df_luminance$luminance_data_movie_name,
+                                        df_luminance$frame_number)
+
+df_salience_metrics<-merge(df_salience_metrics,df_luminance,by.x='merger_id',by.y = 'merger_s',all.x=T)
+df_salience_metrics<-df_salience_metrics[,1:9]
+names(df_salience_metrics)<-c('merger_id','motion_salience_totalframe','sequence','frame_sequence','movie_name','video_category','frame_movie','perceptual_salience_totalframe','luminance')
+
+```
+
+### compare salience and luminance on frame level
+
+```{r plot_salience_luminace_figure}
+
+##-->plot figure (comparison of salience between video categories)####
+
+#define color palette
+#custom_video_category_colors <- c(brewer.pal(3, "Dark2")[2],brewer.pal(3, "Dark2")[1])
+
+g1<-ggplot(df_salience_metrics,
+           aes(x=frame_sequence/25*1000,y=perceptual_salience_totalframe*100,
+               group=video_category,color=video_category,fill=video_category))+
+        geom_smooth()+
+        coord_cartesian(xlim = c(0, 5000),ylim = c(0, 25))+ #zoom in
+        labs(y='physical salience (%)')+
+        theme_bw()+
+        scale_colour_manual(name = "video category", labels = c("human", "non-human"), 
+                          values = custom_video_category_colors)+ #custom color #change legend labels
+        scale_fill_manual(name = "video category", labels = c("human", "non-human"), 
+                          values = custom_video_category_colors)+ #custom color #change legend labels
+        theme(axis.title.x=element_blank())+
+        theme(legend.box.background = element_rect(color="black",size=1.1)) #legend box
+        
+g2<-ggplot(df_salience_metrics,
+           aes(x=frame_sequence/25*1000,y=motion_salience_totalframe*100,
+               group=video_category,color=video_category,fill=video_category))+
+        geom_smooth()+
+        xlim(75,6000)+
+        coord_cartesian(xlim = c(0, 5000),ylim = c(0, 25))+
+        labs(y='motion salience (%)')+
+        scale_colour_manual(name = "video category", labels = c("human", "non-human"), values = custom_video_category_colors)+ #custom color #change legend labels
+        scale_fill_manual(name = "video category", labels = c("human", "non-human"), values = custom_video_category_colors)+ #custom color #change legend labels
+        theme_bw()+
+        theme(axis.title.x=element_blank())
+        
+        
+        
+g3<-ggplot(df_salience_metrics,
+           aes(x=frame_sequence/25*1000,y=luminance*100,
+               group=video_category,color=video_category,fill=video_category))+
+        geom_smooth()+
+        coord_cartesian(xlim = c(0, 5000),ylim = c(0,25))+ #zoom in
+        labs(x='scene duration (ms)',y='luminance (%)')+
+        theme_bw()+
+        scale_colour_manual(name = "video category", labels = c("human", "non-human"), 
+                          values = custom_video_category_colors)+ #custom color #change legend labels
+        scale_fill_manual(name = "video category", labels = c("human", "non-human"), 
+                          values = custom_video_category_colors)+ #custom color #change legend labels
+        theme(legend.box.background = element_rect(color="black",size=1.1)) #legend box
+
+
+g_legend<-function(x){
+        tmp <- ggplot_gtable(ggplot_build(x))
+        leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend <- tmp$grobs[[leg]]
+        return(legend)}
+
+mylegend<-g_legend(g1)
+
+grid.arrange(
+        arrangeGrob(
+                g1 + theme(legend.position="none"),
+                g2 + theme(legend.position="none"),
+                g3 + theme(legend.position="none"),nrow=3, heights = c(1,1,1.2)),
+        mylegend, ncol=2, widths=c(3,1))
+
+dev.off()
+
+
+tiff(file="manuscript/figures/figure_salience_andluminace_between_video_categories.tiff", # create a file in tiff format in current working directory
+     width=6.5, height=6, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+
+grid.arrange(
+        arrangeGrob(
+                g1 + theme(legend.position="none"),
+                g2 + theme(legend.position="none"),
+                g3 + theme(legend.position="none"),nrow=3, heights = c(1,1,1.2)),
+        mylegend, ncol=2, widths=c(3,1))
+
+dev.off()
+
+
+cor.test(df_salience_metrics$perceptual_salience_totalframe,df_salience_metrics$motion_salience_totalframe)
+cor.test(df_salience_metrics$luminance,df_salience_metrics$motion_salience_totalframe)
+cor.test(df_salience_metrics$luminance,df_salience_metrics$perceptual_salience_totalframe)
+
+```
+
+### add luminance and (overall) salience to the main data frame (df_model)
+
+```{r add_luminance_and_salience_to_main_data}
+
+### -->  prepare salience and luminance DF
+##interpolate frame to millisecond
+df_salience_interpolated<-df_salience_metrics
+df_salience_interpolated<-df_salience_interpolated[order(df_salience_interpolated$sequence,
+                                                         df_salience_interpolated$frame_sequence),] #sort 
+df_salience_interpolated<-df_salience_interpolated[df_salience_interpolated$frame_sequence<=125,] #cut after 5 seconds 125 frames  = 5 seconds * 25 fps
+df_salience_interpolated<-df_salience_interpolated[rep(seq_len(nrow(df_salience_interpolated)), 
+                                                       each = 40), ] #repeat every frame 40 times - upsample  to millisecond level
+df_salience_interpolated$ts_sequence<-unlist(sapply(table(df_salience_interpolated$sequence),
+                                                    seq_len)) #millisecond sequence -equivalent to ts.scene
+
+
+## prepare both dfs for merging - create merger variables
+levels(df_model$vid.id)<-substr(levels(df_model$vid.id),1,nchar(levels(df_model$vid.id))-4) #cut file extension from labels
+df_salience_interpolated$sequence_number<-parse_number(with(df_salience_interpolated,
+                                                            substr(sequence,nchar(sequence)-2,nchar(sequence))))
+df_salience_interpolated$sequence_number<-df_salience_interpolated$sequence_number+1 #correct numbering
+
+
+df_model$merger_salx<-with(df_model,paste(vid.id,vid_scene_nr,round(ts.scene),sep='_'))
+df_salience_interpolated$merger_saly<-with(df_salience_interpolated,paste(movie_name,sequence_number,ts_sequence,sep='_'))
+
+
+df_model<-merge(df_model,df_salience_interpolated,by.x='merger_salx',by.y='merger_saly')
+rm(df_salience_interpolated)
+
+```
+
+### pupillary response by luminance and (overall) salience
+
+```{r pupillary_response_by_salience}
+
+# #frame-based salience on pupillary response
+#   lmm_model_pr_all<-lmer(scale(rpd_z)~(scale(luminance)+scale(motion_salience_totalframe)+scale(perceptual_salience_totalframe))*
+#                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
+#                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+#                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+#                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+#                     (1|id)+(1|vid_scene),data=df_model)   #random effects
+# 
+#   lmm_model_pr_all<-lmer(scale(rpd_z)~(scale(luminance)+scale(motion_salience_z)+scale(lowlvl_salience_z))*
+#                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
+#                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+#                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+#                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+#                     (1|id)+(1|vid_scene),data=df_model)   #random effects
+# 
+#   summary_coef_padj(lmm_model_pr_all)
+
+```
+
+
 ### power analysis
 
 ```{r power_analysis, eval=F}
@@ -523,23 +1052,16 @@ number_of_variables<-3
 ### POWER simulation ####
     
     #-->make sure, there is no missing data, otherwise simulation will give errors --> and POWER==
-    df_power<-df_model[!is.na(df_model$rpd_z),names(df_model) %in% c('rpd_z','t1_diagnosis','vid_social','ts.scene','t1_sex','t1_ageyrs','t1_piq','adhd_inatt','anx_beck','dep_beck','Accuracy','Precision','centdev','id','vid_scene')]
+    df_power<-df_model[!is.na(df_model$rpd_z),names(df_model) %in% c('rpd_z','t1_diagnosis','vid_social','ts.scene','t1_sex','t1_ageyrs','t1_piq','adhd_inatt','anx_beck','dep_beck','Accuracy','Precision','centdev','id','vid_scene','luminance')]
     df_power<-na.omit(df_power)
     
     power.lmm<-lme4::lmer(rpd_z~t1_diagnosis+vid_social+
                        poly(ts.scene,3)+ #use I instead of polynomial for later emmeans
                        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                       scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                       scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                        (1|id)+(1|vid_scene),data=df_power,REML=F)   #random effects
 
-    #compares to model without the interested effect
-    # compared_model<-~vid_social+t1_diagnosis:vid_social+
-    #   poly(ts.scene,3)+ #use I instead of polynomial for later emmeans
-    #   t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-    #   scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-    #   scale(Accuracy)+scale(Precision)+scale(centdev)
-     
     #--> define an effect that should be tested (group difference)      
     fixef(power.lmm)["t1_diagnosisControl"]<-0.1
     summary(power.lmm)
@@ -557,24 +1079,49 @@ number_of_variables<-3
 
 ```{r sample descriptive statistics}
 
+
+  acc_z<-scale(df_sample$Accuracy)[,1]
+  prec_z<-scale(df_sample$Precision)[,1]
+  centdev_z<-scale(df_sample$centdev)[,1]
+
 ## --> demographics (outputs overview table) ####
   n_sample<-with(df_sample,table(t1_diagnosis))
   age_m<-with(df_sample,as.numeric(by(t1_ageyrs,t1_diagnosis,function(x){round(mean(x),2)}))) 
   piq_m<-with(df_sample,as.numeric(by(t1_piq,t1_diagnosis,function(x){round(mean(x,na.rm=T),2)}))) 
-  acc_m<-with(df_sample,as.numeric(by(Accuracy,t1_diagnosis,function(x){round(mean(x),2)}))) 
-  prec_m<-with(df_sample,as.numeric(by(Precision,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  acc_m<-with(df_sample,as.numeric(by(acc_z,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  prec_m<-with(df_sample,as.numeric(by(prec_z,t1_diagnosis,function(x){round(mean(x),2)}))) 
+  pd_m<-with(df_sample,as.numeric(by(pd,t1_diagnosis,function(x){round(mean(x),2)})))
+  fixdur_m<-with(df_sample,as.numeric(by(fixation_duration,t1_diagnosis,function(x){round(mean(x),2)})))
+  centdev_m<-with(df_sample,as.numeric(by(centdev_z,t1_diagnosis,function(x){round(mean(x),2)})))
+  att_m<-with(df_sample,as.numeric(by(fixation_duration_sum,t1_diagnosis,function(x){round(mean(x)/1000,2)})))
+  attperc_m<-with(df_sample,as.numeric(by(fixation_duration_sum,t1_diagnosis,function(x){round(mean(x/1000/total_possible_screen_time)*100,2)})))
+  
   age_sd<-with(df_sample,as.numeric(by(t1_ageyrs,t1_diagnosis,function(x){round(sd(x),2)}))) 
   piq_sd<-with(df_sample,as.numeric(by(t1_piq,t1_diagnosis,function(x){round(sd(x,na.rm=T),2)}))) 
-  acc_sd<-with(df_sample,as.numeric(by(Accuracy,t1_diagnosis,function(x){round(sd(x),2)}))) 
-  prec_sd<-with(df_sample,as.numeric(by(Precision,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  acc_sd<-with(df_sample,as.numeric(by(acc_z,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  prec_sd<-with(df_sample,as.numeric(by(prec_z,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  pd_sd<-with(df_sample,as.numeric(by(pd,t1_diagnosis,function(x){round(sd(x),2)}))) 
+  fixdur_sd<-with(df_sample,as.numeric(by(fixation_duration,t1_diagnosis,function(x){round(sd(x),2)})))
+  centdev_sd<-with(df_sample,as.numeric(by(centdev_z,t1_diagnosis,function(x){round(sd(x),2)})))
+  att_sd<-with(df_sample,as.numeric(by(fixation_duration_sum,t1_diagnosis,function(x){round(sd(x)/1000,2)}))) 
+  attperc_sd<-with(df_sample,as.numeric(by(fixation_duration_sum,t1_diagnosis,function(x){round(sd(x/1000/total_possible_screen_time)*100,2)})))
+  
   
   age<-paste(age_m,age_sd,sep='/')
   piq<-paste(piq_m,piq_sd,sep='/')
   acc<-paste(acc_m,acc_sd,sep='/')
   prec<-paste(prec_m,prec_sd,sep='/')
+  pd<-paste(pd_m,pd_sd,sep='/')
+  fixdur<-paste(fixdur_m,fixdur_sd,sep='/')
+  centdev<-paste(centdev_m,centdev_sd,sep='/')
+  att<-paste(att_m,att_sd,sep='/')
+  attperc<-paste(attperc_m,attperc_sd,sep='/')
   
   gender_table<-with(df_sample,sapply(by(t1_sex,t1_diagnosis,table),c))  #-->more female in TD  
   gender<-paste(gender_table[1,],gender_table[2,],sep='/')
+  
+  samplingrate_table<-with(df_sample,sapply(by(SR,t1_diagnosis,table),c))  #-->more female in TD  
+  samplingrate<-paste(samplingrate_table[1,],samplingrate_table[2,],sep='/')
   
   #questionnaire data (covariates)
   srs_m<-with(df_sample,as.numeric(by(t1_srs_rawscore_combined,t1_diagnosis,function(x){round(mean(x,na.rm = T),2)})))
@@ -596,16 +1143,28 @@ number_of_variables<-3
     round(as.numeric(with(df_sample,t.test(t1_ageyrs~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,chisq.test(t1_sex,t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(t1_piq~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(pd~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(fixation_duration~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(fixation_duration_sum~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(centdev~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(Accuracy~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(Precision~t1_diagnosis))['p.value']),3),
+    round(as.numeric(with(df_sample,t.test(fixation_duration_sum~t1_diagnosis))['p.value']),3), #reflects data quality available data
+    round(as.numeric(with(df_sample,chisq.test(as.factor(SR),t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(t1_srs_rawscore_combined~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(adhd_inatt~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(anx_beck~t1_diagnosis))['p.value']),3),
     round(as.numeric(with(df_sample,t.test(dep_beck~t1_diagnosis))['p.value']),3))
  
+  groupdiff_p[which(groupdiff_p==0)]<-'<0.001'
+  groupdiff_p[which(is.na(groupdiff_p))]<-'-'
+  
   df_sampledescribe<-cbind(
-    row_names<-c('n','age','gender (F/M)','non-verbal IQ','data quality - accuracy','data quality - precision','SRS total','ADHD inatt','anxiety (BAS)','depression (BDI)'),
-    rbind(n_sample,age,gender,piq,acc,prec,srs,adhd,anx,dep),
+    row_names<-c('n','age','gender (F/M)','non-verbal IQ',
+                 'baseline pupil size (mm)','fixation duration (ms)','screen attention (s)','center deviation of gaze (z)',
+                 'data quality - accuracy (z)','data quality - precision (z)','data quality - available data (%)','sampling rate (120Hz/300Hz)',
+                 'SRS total','ADHD inatt','anxiety (BAS)','depression (BDI)'),
+    rbind(n_sample,age,gender,piq,pd,fixdur,att,centdev,acc,prec,attperc,samplingrate,srs,adhd,anx,dep),
     groupdiff_p)
   
   #TABLE
@@ -626,15 +1185,35 @@ number_of_variables<-3
 
 ```{r progression_of_key_variables}
 
-g1<-ggplot(df_model,aes(x=ts.scene,y=rpd_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x + poly(x,3))+theme(axis.title.y = element_blank(),axis.title.x = element_blank())+ggtitle('pupillary response')+ scale_color_discrete(name = "group", labels = c("ASD", "TD"))+
-  scale_fill_discrete(name = "group", labels = c("ASD", "TD"))+#change legend labels
+g1<-ggplot(df_model,aes(x=ts.scene,y=rpd_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
+  geom_smooth(method='lm', formula = y ~ x + poly(x,3))+
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank())+
+  ggtitle('pupillary response')+ 
+  scale_color_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
+  scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+#change legend labels
     theme(legend.box.background = element_rect(color="black",size=1.1)) #legend box
 
-g2<-ggplot(df_model,aes(x=ts.scene,y=lowlvl_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x + poly(x,3), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('sensory salience: physical')
+g2<-ggplot(df_model,aes(x=ts.scene,y=lowlvl_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
+  geom_smooth(method='lm', formula = y ~ x + poly(x,3), size = 1)+
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+
+  ggtitle('gazes on physical salience')+
+  scale_color_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
+  scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)#change legend labels
 
-g3<-ggplot(df_model[df_model$ts.scene>500,],aes(x=ts.scene,y=motion_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('sensory salience: motion')
+g3<-ggplot(df_model[df_model$ts.scene>500,],
+           aes(x=ts.scene,y=motion_salience_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
+  geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+
+  ggtitle('gazes on motion salience')+
+  scale_color_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
+  scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)#change legend labels
 
-g4<-ggplot(df_model,aes(x=ts.scene,y=scale(aoi_face),group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+ggtitle('social attention: face AOI')
+g4<-ggplot(df_model,aes(x=ts.scene,y=scale(aoi_face),group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
+  geom_smooth(method='lm', formula = y ~ x +poly(x,5), size = 1)+
+  theme(axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "none")+
+  ggtitle('gazes on faces')+
+  scale_color_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
+  scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)#change legend labels
 
 g_legend<-function(x){
   tmp <- ggplot_gtable(ggplot_build(x))
@@ -644,6 +1223,13 @@ g_legend<-function(x){
 
 mylegend<-g_legend(g1)
 
+grid.arrange(
+    arrangeGrob(
+        g1+theme(legend.position="none"),
+        g4,
+        g2,
+        g3,ncol=2,bottom='scene duration (ms)',left='standardized scores (z)'),
+mylegend,ncol=2, widths=c(10,1))  
 
 tiff(file="manuscript/figures/figure_variables.tiff", # create a file in tiff format in current working directory
   width=8, height=6, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
@@ -661,8 +1247,6 @@ dev.off() #close operation and save file
 
 ```
 
-
-
 ## main analyses
 ### sensory salience
 
@@ -673,7 +1257,7 @@ dev.off() #close operation and save file
                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                     (1|id)+(1|vid_scene),data=df_model)   #random effects
   
   #significant effects
@@ -690,7 +1274,9 @@ dev.off() #close operation and save file
   #table model summary
   table_data_model_lowlvl<-summary_coef_padj(lmm_model_lowlvl)
   row_names<-c('group','pupillary response (PR)','video category (VC)','time^1','time^2','time^3',
-               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'sex','age','perceptual IQ',
+               'ADHD inattention','anxiety','depression',
+               'accuracy','precision','center deviation','luminance',
                'group x PR','group x VC','PR x VC','group x time^1','group x time^2','group x time^3',
                'PR x time^1','PR x time^2','PR x time^3','VC x time^1','VC x time^2','VC x time^3',
                'group x PR x VC','group x PR x time^1','group x PR x time^2','group x PR x time^3',
@@ -721,7 +1307,7 @@ dev.off() #close operation and save file
                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                     (1|id)+(1|vid_scene),data=df_model)   #random effects
   
   #r.squaredGLMM(lmm_model)
@@ -730,7 +1316,9 @@ dev.off() #close operation and save file
   #table model summary
   table_data_model_motion<-summary_coef_padj(lmm_model_motion)
   row_names<-c('group','pupillary response (PR)','video category (VC)','time^1','time^2','time^3',
-               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'sex','age','perceptual IQ',
+               'ADHD inattention','anxiety','depression',
+               'accuracy','precision','center deviation','luminance',
                'group x PR','group x VC','PR x VC','group x time^1','group x time^2','group x time^3',
                'PR x time^1','PR x time^2','PR x time^3','VC x time^1','VC x time^2','VC x time^3',
                'group x PR x VC','group x PR x time^1','group x PR x time^2','group x PR x time^3',
@@ -796,12 +1384,14 @@ lmm_model_rpd<-lmer(rpd_z~t1_diagnosis*vid_social*
                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #use I instead of polynomial for later emmeans
                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                     (1|id)+(1|vid_scene),data=df_model)   #random effects
   
 table_data_model_rpd<-summary_coef_padj(lmm_model_rpd)
   row_names_rpd<-c('group','video category (VC)','time^1','time^2','time^3',
-               'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+               'sex','age','perceptual IQ',
+               'ADHD inattention','anxiety','depression',
+               'accuracy','precision','center deviation','luminance',
                'group x VC','group x time^1','group x time^2','group x time^3',
                'VC x time^1','VC x time^2','VC x time^3',
                'group x VC x time^1','group x VC x time^2','group x VC x time^3')
@@ -859,24 +1449,26 @@ table_data_model_rpd<-summary_coef_padj(lmm_model_rpd)
 
 ```
 
-### social attention
+### gaze on face (social attention)
 
 ```{r results_social_attention_without}
 
 #model without mediators
-lmm_model_data<-df_model[df_model$vid.id %in% c('50faces.mov','dollhouse.m4v','musicbooth.mov'),]
+lmm_model_data<-df_model[df_model$vid.id %in% c('50faces','dollhouse','musicbooth'),]
   lmm_model_sa<-lmer(scale(aoi_face)~t1_diagnosis*
                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                     (1|id)+(1|vid_scene), #random effects
                   data=lmm_model_data)   
   
 table_data_model_sa<-summary_coef_padj(lmm_model_sa)
 
 row_names_sa<-c('group','time^1','time^2','time^3',
-             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'sex','age','perceptual IQ',
+             'ADHD inattention','anxiety','depression',
+             'accuracy','precision','center deviation','luminance',
              'group x time^1','group x time^2','group x time^3')
 
 table_data_model_sa<-cbind(row_names_sa,table_data_model_sa)
@@ -904,14 +1496,16 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                           (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
                           t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                           scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                          scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                          scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                           (1|id)+(1|vid_scene), #random effects
                         data=lmm_model_data)   
     
    table_data_model_sa_salience<-summary_coef_padj(lmm_model_sa_salience)
    
    row_names_sa_salience<-c('group','motion salience (MS)','physical salience (PS)','time^1','time^2','time^3',
-             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'sex','age','perceptual IQ',
+             'ADHD inattention','anxiety','depression',
+             'accuracy','precision','center deviation','luminance',
              'group x MS','group x PS',
              'group x time^1','group x time^2','group x time^3',
              'MS x time^1','MS x time^2','MS x time^3',
@@ -933,11 +1527,11 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
   save_kable(table_model_sa_salience, file= 'manuscript/supplements/table_model_socialattention_with_salience.html')
   
   #effects of salience on social attention
-  cbind(round(fixef(lmm_model)['lowlvl_salience_z'],2),
-        round(confint(lmm_model,parm = 'lowlvl_salience_z'),2))
+  cbind(round(fixef(lmm_model_sa_salience)['lowlvl_salience_z'],2),
+        round(confint(lmm_model_sa_salience,parm = 'lowlvl_salience_z'),2))
   
-  cbind(round(fixef(lmm_model)['motion_salience_z'],2),
-        round(confint(lmm_model,parm = 'motion_salience_z'),2))
+  cbind(round(fixef(lmm_model_sa_salience)['motion_salience_z'],2),
+        round(confint(lmm_model_sa_salience,parm = 'motion_salience_z'),2))
 
  # #plot interaction - physical salience
  #  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
@@ -993,7 +1587,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                       (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
                       t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                       scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                      scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                      scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                       (1|id)+(1|vid_scene), #random effects
                     data=lmm_model_data)   
               
@@ -1001,7 +1595,9 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
     table_data_model_sa_rpd<-summary_coef_padj(lmm_model_sa_rpd)
  
    row_names_sa_rpd<-c('group','pupillary response (PR)','time^1','time^2','time^3',
-             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'sex','age','perceptual IQ',
+             'ADHD inattention','anxiety','depression',
+             'accuracy','precision','center deviation','luminance',
              'group x PR',
              'group x time^1','group x time^2','group x time^3',
              'PR x time^1','PR x time^2','PR x time^3',
@@ -1033,14 +1629,16 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
         lmm_model_sa_pc<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_RC1_z+rpd_RC2_z)+
                           t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
                           scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                          scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+                          scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
                           (1|id)+(1|vid_scene), #random effects
                         data=lmm_model_data)   
      
   table_data_model_sa_pc<-summary_coef_padj(lmm_model_sa_pc)
   
   row_names_sa_pc<-c('group','early pupillary comp. (PC1)','late pupillary comp. (PC2)',
-             'sex','age','perceptual IQ','ADHD inattention','anxiety','depression','accuracy','precision','center deviation',
+             'sex','age','perceptual IQ',
+             'ADHD inattention','anxiety','depression',
+             'accuracy','precision','center deviation','luminance',
              'group x PC1','group x PC2')
   
    table_data_model_sa_pc<-cbind(row_names_sa_pc,table_data_model_sa_pc)
@@ -1076,6 +1674,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                                              at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
                                              params='deg'))
 
+
   g1_motion_salience_interaction<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
     geom_hline(yintercept = 0)+
     geom_boxplot(aes(fill=vid_social,
@@ -1085,18 +1684,30 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                      ymin=rpd_z.trend-2*SE,
                      ymax=rpd_z.trend+2*SE),stat = "identity")+
     theme_bw()+
-    #xlab('time (ms)')+ylab('effect size (z)')+
-    scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+
-    theme(legend.position = 'none',axis.title.x = element_blank(),axis.title.y = element_blank())+
+    scale_fill_manual(name = "video category", labels = c("non-human", "human"),values = rev(custom_video_category_colors))+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank(),
+          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))+
     ylim(-0.3,0.25)
   
-  g1_motion_salience_interaction<-grid.arrange(g1_motion_salience_interaction, top = grid::textGrob("a.)", x = 0, hjust = 0))
+  ## extract legend
+    g_legend<-function(x){
+        tmp <- ggplot_gtable(ggplot_build(x))
+        leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend <- tmp$grobs[[leg]]
+        return(legend)}
+
+  mylegend_motion<-g_legend(g1_motion_salience_interaction) 
+  g1_motion_salience_interaction<-g1_motion_salience_interaction+theme(legend.position = 'none')
+  
+  
+  g1_motion_salience_interaction<-grid.arrange(g1_motion_salience_interaction, top = grid::textGrob("a.) gazes on motion salience by pupillary response", x = 0, hjust = 0))
   
 #g2 - effect of pupillary response between groups
   
   model_plot<-as.data.frame(contrast(emmeans(lmm_model_rpd,~t1_diagnosis|vid_social+ts.scene,
                                     at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
                                     params='deg'),'pairwise'))
+  
   g2_pupillaryresponse<-ggplot(model_plot,aes(x=as.factor(ts.scene)))+
     geom_hline(yintercept = 0)+
     geom_boxplot(aes(fill=vid_social,
@@ -1106,12 +1717,16 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                      ymin=estimate-2*SE,
                      ymax=estimate+2*SE),stat = "identity")+
     theme_bw()+
-    #xlab('time (ms)')+ylab('effect size contrast (z): [ASD - TD]')+
-    scale_fill_discrete(name = "video category", labels = c("non-human", "human"))+
-    theme(legend.position = 'none',axis.title.x = element_blank(),axis.title.y = element_blank())+
+    scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank(),
+          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))+ 
     ylim(-0.3,0.25)
   
-  g2_pupillaryresponse<-grid.arrange(g2_pupillaryresponse,top = grid::textGrob("b.)", x = 0, hjust = 0))
+    #extract legend
+    mylegend_pupil<-g_legend(g2_pupillaryresponse) 
+    g2_pupillaryresponse<-g2_pupillaryresponse+theme(legend.position = 'none')
+  
+  g2_pupillaryresponse<-grid.arrange(g2_pupillaryresponse,top = grid::textGrob("   b.) pupillary response by group", x = 0, hjust = 0))
 
 
 #g3 - physical and motion salience on social attention across groups
@@ -1127,7 +1742,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                      lower=lowlvl_salience_z.trend-SE,
                      upper=lowlvl_salience_z.trend+SE,
                      ymin=lowlvl_salience_z.trend-2*SE,
-                     ymax=lowlvl_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+                     ymax=lowlvl_salience_z.trend+2*SE),stat = "identity",fill=custom_video_category_colors[1])+
     theme_bw()+
     ylim(-0.2,0.2)+
     #xlab('time (ms)')+ylab('effect size (z)')+
@@ -1144,7 +1759,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
                      lower=motion_salience_z.trend-SE,
                      upper=motion_salience_z.trend+SE,
                      ymin=motion_salience_z.trend-2*SE,
-                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
+                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill=custom_video_category_colors[1])+
     theme_bw()+
     ylim(-0.2,0.2)+
     theme(axis.title.x = element_blank(),axis.title.y = element_blank())+
@@ -1152,30 +1767,36 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
     scale_fill_discrete()
   
   #plot to markdown
-  g3_social_attention_salience_effects<-grid.arrange(g_physical,g_motion,ncol=2,top = grid::textGrob("c.)", x = 0, hjust = 0))
+  g3_social_attention_salience_effects<-grid.arrange(g_physical,g_motion,ncol=2,top = grid::textGrob("    c.) social attention by  physical salience (left) or motion salience (right)", x = 0, hjust = 0))
 
+
+  
 # - define layout ####
-lay <- rbind(c(1,2),
-             c(3,3))
-             
+
+  lay <- rbind(c(1,2,4),
+             c(3,3,5))
+
+  
 # - construct panel ####
 grid.arrange(g1_motion_salience_interaction,
              g2_pupillaryresponse,
              g3_social_attention_salience_effects,
+             mylegend_pupil, mylegend_motion,
              layout_matrix=lay,
-             bottom='time (ms)',left= 'effect size (z) \n')
+             bottom='time (ms)',left= 'effect size (z) \n',widths=c(3,3,1))
 
 
 # - save panel to file ####
   
 tiff(file="manuscript/figures/figure_panel_temporaleffects.tiff", # create a file in tiff format
-  width=10, height=8, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+  width=11, height=8, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
  
-  grid.arrange(g1_motion_salience_interaction,
+ grid.arrange(g1_motion_salience_interaction,
              g2_pupillaryresponse,
              g3_social_attention_salience_effects,
+             mylegend_pupil, mylegend_motion,
              layout_matrix=lay,
-             bottom='time (ms)',left= 'effect size (z) \n')
+             bottom='time (ms)',left= 'effect size (z) \n',widths=c(3,3,1))
   
   dev.off()
   
