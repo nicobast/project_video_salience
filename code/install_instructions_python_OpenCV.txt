@@ -1,0 +1,29 @@
+### INSTALL: openCV to python
+### contrib also contains additional modules of openCV including the salience API
+
+open "CMD"
+pip install opencv-contrib-python
+
+### 2 SETUP:
+
+# change to python and check version
+py
+import.cv2
+cv2.__version__
+cv.saliency #check whether saliency module of opencv is installed
+
+# define folder with videos in a directory in split_video_to_images.py
+vid_path = "C:/Users/Nico/PowerFolders/Paper_AIMS-LEAP_ETcore/stimuli/nonhuman/"
+
+
+### 3. RUN: SALIENCE_OF_VIDEOS.bat
+
+# SEE SALIENCE_OF_VIDEOS.bat for specific FILE PATHS
+
+## CORE LOOP RUN
+
+  #--> a. search video file "video" and split to individual images and save to file
+  split_video_to_images.py "video_name"
+
+  #--> b. extract saliency from individual images and save as grayscale image
+  static_salience_in_video.py "video_name"
