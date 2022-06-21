@@ -14,12 +14,22 @@
 
 <title>data preprocessing</title>
 
-<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
 <script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
 <link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
 <script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
@@ -29,7 +39,7 @@
 <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
-<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
 <!-- Add a small amount of space between sections. -->
 <style type="text/css">
 div.section {
@@ -37,12 +47,18 @@ div.section {
 }
 </style>
 
-<style type="text/css">code{white-space: pre;}</style>
+
+
 <style type="text/css">
-  pre:not([class]) {
-    background-color: white;
-  }
-</style>
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
 <script type="text/javascript">
 if (window.hljs) {
   hljs.configure({languages: []});
@@ -55,32 +71,8 @@ if (window.hljs) {
 
 
 
-<style type="text/css">
-h1 {
-  font-size: 34px;
-}
-h1.title {
-  font-size: 38px;
-}
-h2 {
-  font-size: 30px;
-}
-h3 {
-  font-size: 24px;
-}
-h4 {
-  font-size: 18px;
-}
-h5 {
-  font-size: 16px;
-}
-h6 {
-  font-size: 12px;
-}
-.table th:not([align]) {
-  text-align: left;
-}
-</style>
+
+
 
 
 
@@ -90,10 +82,6 @@ h6 {
   max-width: 940px;
   margin-left: auto;
   margin-right: auto;
-}
-code {
-  color: inherit;
-  background-color: rgba(0, 0, 0, 0.04);
 }
 img {
   max-width:100%;
@@ -110,40 +98,16 @@ button.code-folding-btn:focus {
 summary {
   display: list-item;
 }
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
 </style>
 
 
 <style type="text/css">
-/* padding for bootstrap navbar */
-body {
-  padding-top: 51px;
-  padding-bottom: 40px;
-}
-/* offset scroll position for anchor links (for fixed navbar)  */
-.section h1 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h2 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h3 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h4 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h5 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h6 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
 .dropdown-submenu {
   position: relative;
 }
@@ -171,7 +135,7 @@ body {
   margin-right: -10px;
 }
 .dropdown-submenu:hover>a:after {
-  border-left-color: #ffffff;
+  border-left-color: #adb5bd;
 }
 .dropdown-submenu.pull-left {
   float: none;
@@ -183,7 +147,7 @@ body {
 }
 </style>
 
-<script>
+<script type="text/javascript">
 // manage active state of menu based on current page
 $(document).ready(function () {
   // active menu anchor
@@ -194,10 +158,23 @@ $(document).ready(function () {
   var menuAnchor = $('a[href="' + href + '"]');
 
   // mark it active
-  menuAnchor.parent().addClass('active');
+  menuAnchor.tab('show');
 
   // if it's got a parent navbar menu mark it active as well
   menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
 });
 </script>
 
@@ -209,7 +186,6 @@ $(document).ready(function () {
   max-height: 500px;
   min-height: 44px;
   overflow-y: auto;
-  background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
@@ -335,7 +311,7 @@ div.tocify {
 
 
 <!-- setup 3col/9col grid for toc_float and main content  -->
-<div class="row-fluid">
+<div class="row">
 <div class="col-xs-12 col-sm-4 col-md-3">
 <div id="TOC" class="tocify">
 </div>
@@ -349,7 +325,7 @@ div.tocify {
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -381,7 +357,7 @@ div.tocify {
   </div><!--/.container -->
 </div><!--/.navbar -->
 
-<div class="fluid-row" id="header">
+<div id="header">
 
 
 
@@ -394,7 +370,9 @@ div.tocify {
 
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
-<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
 </button>
 </p>
 <div id="workflowr-report" class="collapse">
@@ -403,7 +381,9 @@ div.tocify {
 <a data-toggle="tab" href="#summary">Summary</a>
 </li>
 <li>
-<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
 </li>
 <li>
 <a data-toggle="tab" href="#versions">Past versions</a>
@@ -412,92 +392,134 @@ div.tocify {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2022-03-01
+<strong>Last updated:</strong> 2022-06-21
 </p>
 <p>
-<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
 </p>
 <p>
-<strong>Knit directory:</strong> <code>project_video_salience/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+<strong>Knit directory:</strong> <code>project_video_salience/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
 </p>
 <p>
-This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
-  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.0). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
 </p>
 <hr>
 </div>
 <div id="checks" class="tab-pane fade">
-<div class="panel-group" id="workflowr-checks">
+<div id="workflowr-checks" class="panel-group">
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
 </p>
 </div>
 <div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210113code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210113)</code> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210113code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20210113)</code> </a>
 </p>
 </div>
-<div id="strongSeedstrongcodesetseed20210113code" class="panel-collapse collapse">
+<div id="strongSeedstrongcodesetseed20210113code"
+class="panel-collapse collapse">
 <div class="panel-body">
-<p>The command <code>set.seed(20210113)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+<p>The command <code>set.seed(20210113)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
 </p>
 </div>
-<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
 </p>
 </div>
 <div id="strongCachestrongnone" class="panel-collapse collapse">
 <div class="panel-body">
-<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
 </p>
 </div>
 <div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
-Using absolute paths to the files within your workflowr project makes it difficult for you and others to run your code on a different machine. Change the absolute path(s) below to the suggested relative path(s) to make your code more reproducible.
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
 </p>
 <table class="table table-condensed table-hover">
 <thead>
@@ -551,19 +573,36 @@ motion_salience
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree8c0d2cb715fa8b76a75e4452d92fa50a6298fc5btargetblank8c0d2cba"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/nicobast/project_video_salience/tree/8c0d2cb715fa8b76a75e4452d92fa50a6298fc5b" target="_blank">8c0d2cb</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree6c39d76083d6d456faa59a9f0681902ec824bf1ctargetblank6c39d76a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/nicobast/project_video_salience/tree/6c39d76083d6d456faa59a9f0681902ec824bf1c" target="_blank">6c39d76</a>
+</a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree8c0d2cb715fa8b76a75e4452d92fa50a6298fc5btargetblank8c0d2cba" class="panel-collapse collapse">
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomnicobastprojectvideosaliencetree6c39d76083d6d456faa59a9f0681902ec824bf1ctargetblank6c39d76a"
+class="panel-collapse collapse">
 <div class="panel-body">
 <p>
-Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version <a href="https://github.com/nicobast/project_video_salience/tree/8c0d2cb715fa8b76a75e4452d92fa50a6298fc5b" target="_blank">8c0d2cb</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version
+<a href="https://github.com/nicobast/project_video_salience/tree/6c39d76083d6d456faa59a9f0681902ec824bf1c" target="_blank">6c39d76</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
 </p>
 <p>
-Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
 </p>
 <pre><code>
 Ignored files:
@@ -574,21 +613,26 @@ Ignored files:
 Untracked files:
     Untracked:  .PowerFolder/
     Untracked:  analysis/Results in unmatched sample.docx
+    Untracked:  analysis/packages.bib
+    Untracked:  analysis/vancouver-brackets.csl
     Untracked:  code/OLD/
     Untracked:  code/analysis_salience_130121.R
     Untracked:  code/analysis_salience_150421.R
     Untracked:  code/extract_salience_metrics.R
+    Untracked:  code/luminance_per_fixated_pixel.R
     Untracked:  code/mean_salience_per_video.R
     Untracked:  code/preprocessing1_matching_gaze_and_salience_data.R
     Untracked:  code/preprocessing2_matching_gaze_and_motionsalience_data.R
     Untracked:  code/preprocessing3_datareduction_adding_additional_data.R
     Untracked:  code/python_code_salience_extraction/
     Untracked:  code/sesnory_subgroup_analysis.R
+    Untracked:  data/df_model_luminance_test.Rdata
     Untracked:  data/luminance_data.Rdata
     Untracked:  data/merged_data/
     Untracked:  data/motion_salience.Rdata
     Untracked:  data/perceptual_salience
     Untracked:  data/perceptual_salience.Rdata
+    Untracked:  data/test_luminance.Rdata
     Untracked:  data/video_stimuli_scenes.csv
     Untracked:  desktop.ini
     Untracked:  manuscript/
@@ -600,7 +644,9 @@ Untracked files:
     Untracked:  output/stimuli_pics/
     Untracked:  output/stimuli_salience/
     Untracked:  output/stimuli_scene/
+    Untracked:  packages.bib
     Untracked:  project_init_workflow.R
+    Untracked:  vancouver-brackets.csl
 
 Unstaged changes:
     Modified:   code/README.md
@@ -608,7 +654,9 @@ Unstaged changes:
 
 </code></pre>
 <p>
-Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
 </p>
 </div>
 </div>
@@ -619,7 +667,12 @@ Note that any generated files, e.g. HTML, png, CSS, etc., are not included in t
 <div id="versions" class="tab-pane fade">
 
 <p>
-These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/data_preprocessing.Rmd</code>) and HTML (<code>docs/data_preprocessing.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/data_preprocessing.Rmd</code>)
+and HTML (<code>docs/data_preprocessing.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
 </p>
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
@@ -643,6 +696,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/nicobast/project_video_salience/blob/6c39d76083d6d456faa59a9f0681902ec824bf1c/analysis/data_preprocessing.Rmd" target="_blank">6c39d76</a>
+</td>
+<td>
+nicobast
+</td>
+<td>
+2022-06-21
+</td>
+<td>
+Publish the initial files for myproject
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/nicobast/project_video_salience/fda1e04c91fb8863b508a087ccc1622bde809e97/docs/data_preprocessing.html" target="_blank">fda1e04</a>
+</td>
+<td>
+nicobast
+</td>
+<td>
+2022-03-01
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -684,7 +771,14 @@ Publish the initial files for myproject
 </div>
 </div>
 </div>
-<p>Raw data is preprocessed. Raw timestamp and oculomotor function data is combined to eye-tracking data sets. Extracted <a href="extract_salience.html">salience information</a> is merged to eye-tracking data sets. This is followed up by an elaborate preprocessing including pupil dilation preprocessing, data reduction to saccade/fixation events, adding area-of-interest-information, oculomotor outlier exclusion, adding demographic and phenotypic and data quality and sensory subgroup and video scene information.</p>
+<p>Raw data is preprocessed. Raw timestamp and oculomotor function data
+is combined to eye-tracking data sets. Extracted <a
+href="extract_salience.html">salience information</a> is merged to
+eye-tracking data sets. This is followed up by a preprocessing including
+pupil dilation preprocessing, data reduction to saccade/fixation events,
+adding area-of-interest-information, oculomotor outlier exclusion,
+adding demographic and phenotypic and data quality and sensory subgroup
+and video scene information.</p>
 <div id="setup" class="section level1">
 <h1>setup</h1>
 <pre class="r"><code>knitr::opts_chunk$set(echo = TRUE)
@@ -695,19 +789,63 @@ oculomotor_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_data_ET/&#39; # on linu
 timestamp_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_data170718/logs&#39; # on linux machine
 merged_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_merged/&#39; #combined oculomotor function + timestamp raw data</code></pre>
 </div>
+<div id="load-packages" class="section level1">
+<h1>load packages</h1>
+<pre class="r"><code>#check for OS --&gt; define home path (script independent of OS)
+ifelse(Sys.info()[&#39;sysname&#39;]==&#39;Linux&#39;,
+       home_path&lt;-&#39;~&#39;,
+       home_path&lt;-&#39;C:/Users/Nico&#39;)
+
+#required packages
+require(parallel) #parallel processing
+#require(nlme) #linear mixed models (lme)
+#require(ggeffects) #predicted marginalized means
+#require(ggplot2)
+require(zoo) #na.approx in pd.preprocess.func
+require(readxl)
+require(readbitmap) #read image data
+require(gtools) #sort file paths alphanumerically - mixedsort
+
+suppressMessages({
+  
+  require(readxl) #load data
+  require(zoo) #pd preprocessing - na.approx
+  require(mice) #imputation 
+  require(Gmisc) #fastdo.call
+  
+  require(ggplot2)
+  require(sjPlot) #plotting lmer
+  require(sjmisc)
+  require(gridExtra)  
+  
+  require(lme4)
+  require(lmerTest)  
+  require(emmeans)
+  
+  require(MatchIt) #sample matching
+  
+  require(R.matlab) #read AOI data from matlab files
+  require(reshape2) #melt
+  
+})</code></pre>
+</div>
 <div id="combine-data" class="section level1">
 <h1>combine data</h1>
 <div id="merge-raw-data" class="section level2">
 <h2>merge raw data</h2>
 <ul>
-<li>Raw Data is avaiable in two versions. These are merged by the following script
+<li>Raw Data is avaiable in two versions. These are merged by the
+following script
 <ul>
-<li>version 1 (v1): data with fixation identification and without timestamp information (oculomotor data)</li>
-<li>version 2 (v2): data without fxation identification but with timestamp/event information (timestamp data)</li>
+<li>version 1 (v1): data with fixation identification and without
+timestamp information (oculomotor data)</li>
+<li>version 2 (v2): data without fxation identification but with
+timestamp/event information (timestamp data)</li>
 </ul></li>
 <li>INPUT:
 <ul>
-<li>data versions - locations: (on Linux machine with large amounts of RAM)
+<li>data versions - locations: (on Linux machine with large amounts of
+RAM)
 <ul>
 <li>version1: “/home/nico/Documents/EUAIMS_data_ET/”</li>
 <li>version2: “/home/nico/Documents/EUAIMS_data170718/logs”</li>
@@ -726,14 +864,7 @@ merged_raw_data&lt;-&#39;/home/nico/Documents/EUAIMS_merged/&#39; #combined ocul
 <li>data version 1&amp;2 and demographics: n = 556</li>
 </ul></li>
 </ul>
-<pre class="r"><code>#required packages
-require(parallel) #parallel processing
-#require(nlme) #linear mixed models (lme)
-#require(ggeffects) #predicted marginalized means
-#require(ggplot2)
-require(zoo) #na.approx in pd.preprocess.func
-
-#CSV data V1 - fixation identification data but fewer cases
+<pre class="r"><code>#CSV data V1 - fixation identification data but fewer cases
     #EVENT DETECTION by GraFIX has been applied
 paths.v1&lt;-&quot;/home/nico/Documents/EUAIMS_data_ET/&quot;
 data.files.v1&lt;-list.files(path=paths.v1, full.names=TRUE,recursive=T)
@@ -853,30 +984,32 @@ print(paste(&#39;saved:&#39;,analyzed.movie))
 <div id="merge-perceptual-salience-data" class="section level2">
 <h2>merge perceptual salience data</h2>
 <ul>
-<li><p>TASK: “for every gaze coordinate associate a perceptual salience grayscale value”</p></li>
+<li><p>TASK: “for every gaze coordinate associate a perceptual salience
+grayscale value”</p></li>
 <li><p>thinking about stimulus presentation screen+ vid sizes</p>
 <ul>
-<li>presentation screen was fixed to 345 * 259 mm (4:3 format) - corresponds to smooth-x and smooth_y variables</li>
-<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black screen during presentation - 32.38mm on both sides</li>
+<li>presentation screen was fixed to 345 * 259 mm (4:3 format) -
+corresponds to smooth-x and smooth_y variables</li>
+<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black
+screen during presentation - 32.38mm on both sides</li>
 </ul></li>
 <li><p>INPUT DATA:</p>
 <ul>
-<li>EU-AIMS oculomotor+gaze+timestamp data per video - “/home/nico/Documents/EUAIMS_merged/” (see above)
+<li>EU-AIMS oculomotor+gaze+timestamp data per video -
+“/home/nico/Documents/EUAIMS_merged/” (see above)
 <ul>
-<li>copied to: "C:_video_salience_data"</li>
+<li>copied to: “C:_video_salience_data”</li>
 </ul></li>
 <li>saliency maps
 <ul>
-<li>"C:_video_salience_salience" <a href="extract_salience.html">see extract_salience</a></li>
+<li>“C:_video_salience_salience” <a href="extract_salience.html">see
+extract_salience</a></li>
 </ul></li>
 </ul></li>
 <li><p>OUPUT DATA: matched saliency + gaze data</p></li>
 </ul>
 <pre class="r"><code>### SETUP ####
 
-#packages
-require(readbitmap) #read image data
-require(gtools) #sort file paths alphanumerically - mixedsort
 
 #GET PATHS OF ET and SALIENCE DATA
 #et_paths&lt;-&quot;C:/Users/Nico/PowerFolders/project_video_salience/et_data/&quot;
@@ -1002,21 +1135,26 @@ mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_d
 <div id="merge-motion-salience-data" class="section level2">
 <h2>merge motion salience data</h2>
 <ul>
-<li><p>TASK: “for every gaze coordinate associate a motion salience grayscale value”</p></li>
+<li><p>TASK: “for every gaze coordinate associate a motion salience
+grayscale value”</p></li>
 <li><p>thinking about stimulus presentation screen+ vid sizes</p>
 <ul>
-<li>presentation screen was fixed to 345 * 259 mm (4:3 format) - corresponds to smooth-x and smooth_y variables</li>
-<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black screen during presentation - 32.38mm on both sides</li>
+<li>presentation screen was fixed to 345 * 259 mm (4:3 format) -
+corresponds to smooth-x and smooth_y variables</li>
+<li>most videos are in 16:9 –&gt; i.e. one quarter in y axis is black
+screen during presentation - 32.38mm on both sides</li>
 </ul></li>
 <li><p>INPUT DATA:</p>
 <ul>
-<li>EU-AIMS oculomotor+gaze+timestamp data per video - “/home/nico/Documents/EUAIMS_merged/” (see above)
+<li>EU-AIMS oculomotor+gaze+timestamp data per video -
+“/home/nico/Documents/EUAIMS_merged/” (see above)
 <ul>
-<li>copied to: "C:_video_salience_data"</li>
+<li>copied to: “C:_video_salience_data”</li>
 </ul></li>
 <li>saliency maps
 <ul>
-<li>"C:_video_salience_salience" <a href="extract_salience.html">see extract_salience</a></li>
+<li>“C:_video_salience_salience” <a href="extract_salience.html">see
+extract_salience</a></li>
 </ul></li>
 </ul></li>
 <li><p>OUPUT DATA: matched saliency + gaze data</p></li>
@@ -1024,13 +1162,6 @@ mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_d
 <pre class="r"><code>### SETUP ####
 
 #packages
-require(readbitmap) #read image data
-require(gtools) #sort file paths alphanumerically - mixedsort
-
-#check for OS --&gt; define home path (script independent of OS)
-ifelse(Sys.info()[&#39;sysname&#39;]==&#39;Linux&#39;,
-       home_path&lt;-&#39;~&#39;,
-       home_path&lt;-&#39;C:/Users/Nico&#39;)
 
 
 # GET PATHS OF ET and SALIENCE DATA ####
@@ -1184,21 +1315,10 @@ suppressMessages({
   require(R.matlab) #read AOI data from matlab files
   require(reshape2) #melt
   
-})</code></pre>
-<pre><code>Warning: Paket &#39;zoo&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;mice&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;Gmisc&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;Rcpp&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;htmlTable&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;sjPlot&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;sjmisc&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;lme4&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;Matrix&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;lmerTest&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;emmeans&#39; wurde unter R Version 3.6.2 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;MatchIt&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre><code>Warning: Paket &#39;R.matlab&#39; wurde unter R Version 3.6.3 erstellt</code></pre>
-<pre class="r"><code>#check for OS --&gt; define home path (script independent of OS)
+})
+
+
+#check for OS --&gt; define home path (script independent of OS)
 ifelse(Sys.info()[&#39;sysname&#39;]==&#39;Linux&#39;,
        home_path&lt;-&#39;~&#39;,
        home_path&lt;-&#39;C:/Users/Nico&#39;)</code></pre>
@@ -1274,7 +1394,9 @@ object.size(df) #---&gt; around 5GB
 </div>
 <div id="pupil-dilation-preprocessing" class="section level2">
 <h2>pupil dilation preprocessing</h2>
-<p>PD preprocessing according to <a href="https://doi.org/10.3758/s13428-018-1075-y">Kret 2018</a> recommendations</p>
+<p>PD preprocessing according to <a
+href="https://doi.org/10.3758/s13428-018-1075-y">Kret 2018</a>
+recommendations</p>
 <pre class="r"><code>#CALCULATE PD variables ####
 
 #calculate mean PD per ID (tpd)
@@ -1410,7 +1532,8 @@ rm(df_split,pd_list,pd)
 #df&lt;-merge(df,tpd_per_id,by=&#39;id&#39;)
 #df$rpd&lt;-df$pd/df$tpd</code></pre>
 </div>
-<div id="split-to-saccade-and-fixation-data-sets" class="section level2">
+<div id="split-to-saccade-and-fixation-data-sets"
+class="section level2">
 <h2>split to saccade and fixation data sets</h2>
 <pre class="r"><code>###--&gt; SPLIT to  saccade fixation data sets ####
 
@@ -1438,7 +1561,6 @@ df_sac$rpd&lt;-df_sac$pd/df_sac$tpd</code></pre>
 <pre class="r"><code># ###---&gt; SAVE RAW ####
 # save(df_fix,df_sac,id_levels,vid_id_levels,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;,sep=&#39;&#39;))
 
-#load raw data
 
 load(paste0(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;))</code></pre>
 </div>
@@ -1462,7 +1584,8 @@ summary(nobs_sac)</code></pre>
 <div id="add-area-of-interest-data" class="section level2">
 <h2>add area-of-interest data</h2>
 <ul>
-<li>area-of-interest (AOI) data is only available for 50faces, musicbooth, dollhouse video clips (human social videos)</li>
+<li>area-of-interest (AOI) data is only available for 50faces,
+musicbooth, dollhouse video clips (human social videos)</li>
 <li>extracted from a matlab data set (Birbeck College)</li>
 <li>available data sets:
 <ul>
@@ -1471,7 +1594,7 @@ summary(nobs_sac)</code></pre>
 <li>musicbooth: n=451</li>
 </ul></li>
 </ul>
-<pre class="r"><code>### ADD AOI data (only available for 50faces, musicbooth, dollhouse - 15.12.20) ####
+<pre class="r"><code>### ADD AOI data (only available for 50faces, musicbooth, dollhouse - 15.12.20 --&gt; social vids) ####
 
 ###read AOI data 
 ###--&gt; AOI data available for dollhouse: n=487 participants, 50faces:  n= 653, musicbooth: n=451
@@ -1581,17 +1704,79 @@ df_fix&lt;-df_fix[!(df_fix$vid.id %in% c(&quot;musicbooth.mov&quot;,&quot;50face
 df_fix&lt;-dplyr::bind_rows(df_fix,df_fix_aoi)
 
 ###--&gt; save RAW AOI fixation data with salience data
-save(df_fix,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))
+save(df_fix,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+</div>
+<div id="load-intermediate-date" class="section level2">
+<h2>load intermediate date</h2>
+<pre class="r"><code># #AOI data merged to salience FIXATION data with AOI information (df_fix)
+load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+</div>
+<div id="add-lag-to-the-pupillary-response-data" class="section level2">
+<h2>add lag to the pupillary response data</h2>
+<pre class="r"><code>##for fixation dataset
 
-# #merged raw data
-#load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata&quot;,sep=&#39;&#39;)) 
-# #AOI data merged to salience fixation data (df_fix)
-#load(paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+#split data set
+df_fix_split&lt;-split(df_fix, interaction(df_fix$id,df_fix$vid.id))
+select_df_with_data&lt;-lapply(df_fix_split,function(x){nrow(x)&gt;0})
+
+#remove dfs without data
+df_fix_split&lt;-df_fix_split[select_df_with_data==TRUE]
+
+#function to find a subsequent pupil size that is at least the defined lag in the future
+func_rpd_lag&lt;-function(x,lag=200){
+  for(i in 1:nrow(x)){
+    lookup&lt;-which(x$ts.local&gt;=x$ts.local[i]+lag &amp; x$ts.local&lt;=x$ts.local[i]+(2*lag))[1]
+    ifelse(is.na(lookup),
+          x$rpd_lag[i]&lt;-x$rpd[i],
+          x$rpd_lag[i]&lt;-x$rpd[lookup])}
+    return(x)
+}
+
+#apply function 
+df_fix_split&lt;-lapply(df_fix_split,func_rpd_lag) #takes quite long
+df_fix&lt;-do.call(rbind,df_fix_split)
+
+##for saccade dataset
+
+#split data set
+df_sac_split&lt;-split(df_sac, interaction(df_sac$id,df_sac$vid.id))
+select_df_with_data&lt;-lapply(df_sac_split,function(x){nrow(x)&gt;0})
+
+#remove dfs without data
+df_sac_split&lt;-df_sac_split[select_df_with_data==TRUE]
+
+#function to find a subsequent pupil size that is at least the defined lag in the future
+func_rpd_lag&lt;-function(x,lag=200){
+  for(i in 1:nrow(x)){
+    lookup&lt;-which(x$ts.local&gt;=x$ts.local[i]+lag &amp; x$ts.local&lt;=x$ts.local[i]+(2*lag))[1]
+    ifelse(is.na(lookup),
+          x$rpd_lag[i]&lt;-x$rpd[i],
+          x$rpd_lag[i]&lt;-x$rpd[lookup])}
+    return(x)
+}
+
+# test&lt;-df_fix_split[[100]]
+# test2&lt;-func_rpd_lag(test)
+# table(sapply(df_fix_split,function(x){nrow(x)&lt;1}))
+
+#apply function 
+df_sac_split&lt;-lapply(df_sac_split,func_rpd_lag) #takes quite long
+df_sac&lt;-do.call(rbind,df_sac_split)
+
+#save added rpd_lag in df_fix and df_sac
+save(df_fix,df_sac,file=paste(home_path,&quot;/PowerFolders/data_LEAP/lagged_rpd_310522.Rdata&quot;,sep=&#39;&#39;))
+rm(df_fix_split,df_sac_split,select_df_with_data)</code></pre>
+<div id="load-intermediate-data" class="section level3">
+<h3>load intermediate data</h3>
+<pre class="r"><code># #AOI data merged to salience fixation data (df_fix)
+load(paste(home_path,&quot;/PowerFolders/data_LEAP/lagged_rpd_310522.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+</div>
 </div>
 <div id="aggregate-data-by-fixationsaccades" class="section level2">
 <h2>aggregate data by fixation/saccades</h2>
 <ul>
-<li>data was sampled at 300 Hz, which is now reduced to 1 sample per event (fixation/saccade)</li>
+<li>data was sampled at 300 Hz, which is now reduced to 1 sample per
+event (fixation/saccade)</li>
 <li>substantially reduces required size</li>
 </ul>
 <pre class="r"><code>###--&gt; AGGREGATE data by saccade_number and fixation_number to reduce size ####
@@ -1613,15 +1798,14 @@ df_fix&lt;-aggregate(df_fix, by=list(interaction(df_fix$fixation_number,df_fix$v
 df_fix$id&lt;-as.factor(df_fix$id)
 levels(df_fix$id)&lt;-id_levels
 df_fix$vid.id&lt;-as.factor(df_fix$vid.id)
-levels(df_fix$vid.id)&lt;-vid_id_levels
-
-###--&gt;several missings in saccade_velocity metrics</code></pre>
+levels(df_fix$vid.id)&lt;-vid_id_levels</code></pre>
 </div>
 <div id="calculate-additional-variables" class="section level2">
 <h2>calculate additional variables</h2>
 <ul>
-<li>currently not used in analysis</li>
 <li>center deviation, relative salience, log-transformed salience</li>
+<li>currently not used in analysis: relative salience, log-transformed
+salience</li>
 </ul>
 <pre class="r"><code>## CALCULATE ADDITIONAL VARIABLES ####
 
@@ -1762,8 +1946,9 @@ df_fix&lt;-merge(df_fix,df_quality,by.x=&#39;id&#39;,by.y=&#39;ParticipantID&#39
 <h2>add scenes data</h2>
 <pre class="r"><code>## ADD scenes data (incl. ts.scene) ####
 
+
 #scenes are defined by visual inspection of videos (camera change/cut == new scene)
-df_scenes&lt;-read.csv(paste(home_path,&quot;/PowerFolders/project_video_salience/video_stimuli_scenes.csv&quot;,sep=&#39;&#39;),header=T,sep=&#39;;&#39;)
+df_scenes&lt;-read.csv(paste(home_path,&quot;/PowerFolders/project_video_salience/data/video_stimuli_scenes.csv&quot;,sep=&#39;&#39;),header=T,sep=&#39;;&#39;)
 
 # fps&lt;-25 #standard for all videos? --&gt; no: artist, musicbooth, dollhouse with 24fps 
 # if(vid_name %in% c(&#39;artist&#39;,&#39;musicbooth&#39;,&#39;dollhouse&#39;)){fps&lt;-24}
@@ -1836,6 +2021,8 @@ df_character_agg&lt;-unique(df_character)
 df_agg&lt;-merge(df_numeric_agg,df_character_agg,by=&#39;id&#39;)
 df_agg&lt;-df_agg[,!names(df_agg) %in% c(&#39;ts.scene.x&#39;,&#39;ts.scene.y&#39;)]
 
+
+
 ###--&gt;n=544
 
 ## OUTLIER exclusion of aggregated DF #
@@ -1855,11 +2042,12 @@ df_agg$rpd&lt;-ifelse(df_agg$rpd&lt;0.9,NA,df_agg$rpd)</code></pre>
 </div>
 <div id="save-preprocessed-data" class="section level2">
 <h2>save preprocessed data</h2>
-<pre class="r"><code>save(df_agg,df_scenes,df_fix,df_sac,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_151220.Rdata&quot;,sep=&#39;&#39;))</code></pre>
+<pre class="r"><code>save(df_agg,df_scenes,df_fix,df_sac,file=paste(home_path,&quot;/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_020622.Rdata&quot;,sep=&#39;&#39;))</code></pre>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
-<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
 </button>
 </p>
 <div id="workflowr-sessioninfo" class="collapse">
@@ -1871,7 +2059,7 @@ df_agg$rpd&lt;-ifelse(df_agg$rpd&lt;0.9,NA,df_agg$rpd)</code></pre>
 
 <!-- Adjust MathJax settings so that all math formulae are shown using
 TeX fonts only; see
-http://docs.mathjax.org/en/latest/configuration.html.  This will make
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
 the presentation more consistent at the cost of the webpage sometimes
 taking slightly longer to load. Note that this only works because the
 footer is added to webpages before the MathJax javascript. -->
@@ -1880,6 +2068,8 @@ footer is added to webpages before the MathJax javascript. -->
     "HTML-CSS": { availableFonts: ["TeX"] }
   });
 </script>
+
+
 
 
 </div>
@@ -1891,7 +2081,7 @@ footer is added to webpages before the MathJax javascript. -->
 
 // add bootstrap table styles to pandoc tables
 function bootstrapStylePandocTables() {
-  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
 }
 $(document).ready(function () {
   bootstrapStylePandocTables();
@@ -1909,7 +2099,7 @@ $(document).ready(function () {
 
 $(document).ready(function () {
   $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
+    $(this).parent().toggleClass('nav-tabs-open');
   });
 });
 </script>
@@ -1918,6 +2108,9 @@ $(document).ready(function () {
 
 <script>
 $(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
 
     // move toc-ignore selectors from section div to header
     $('div.section.toc-ignore')
@@ -1930,7 +2123,7 @@ $(document).ready(function ()  {
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
       },
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
