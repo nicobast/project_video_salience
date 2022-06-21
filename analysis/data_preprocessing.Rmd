@@ -5,7 +5,7 @@ date: "17 3 2021"
 output: html_document
 ---
 
-Raw data is preprocessed. Raw timestamp and oculomotor function data is combined to eye-tracking data sets. Extracted [salience information](extract_salience.html) is merged to eye-tracking data sets. This is followed up by an elaborate preprocessing including pupil dilation preprocessing, data reduction to saccade/fixation events, adding area-of-interest-information, oculomotor outlier exclusion, adding demographic and phenotypic and data quality and sensory subgroup and video scene information.
+Raw data is preprocessed. Raw timestamp and oculomotor function data is combined to eye-tracking data sets. Extracted [salience information](extract_salience.html) is merged to eye-tracking data sets. This is followed up by a  preprocessing including pupil dilation preprocessing, data reduction to saccade/fixation events, adding area-of-interest-information, oculomotor outlier exclusion, adding demographic and phenotypic and data quality and sensory subgroup and video scene information.
 
 # setup
 
@@ -18,8 +18,55 @@ oculomotor_raw_data<-'/home/nico/Documents/EUAIMS_data_ET/' # on linux machine -
 timestamp_raw_data<-'/home/nico/Documents/EUAIMS_data170718/logs' # on linux machine
 merged_raw_data<-'/home/nico/Documents/EUAIMS_merged/' #combined oculomotor function + timestamp raw data
 
+```
+
+# load packages
+
+```{r load packages define OS}
+
+
+#check for OS --> define home path (script independent of OS)
+ifelse(Sys.info()['sysname']=='Linux',
+       home_path<-'~',
+       home_path<-'C:/Users/Nico')
+
+#required packages
+require(parallel) #parallel processing
+#require(nlme) #linear mixed models (lme)
+#require(ggeffects) #predicted marginalized means
+#require(ggplot2)
+require(zoo) #na.approx in pd.preprocess.func
+require(readxl)
+require(readbitmap) #read image data
+require(gtools) #sort file paths alphanumerically - mixedsort
+
+suppressMessages({
+  
+  require(readxl) #load data
+  require(zoo) #pd preprocessing - na.approx
+  require(mice) #imputation 
+  require(Gmisc) #fastdo.call
+  
+  require(ggplot2)
+  require(sjPlot) #plotting lmer
+  require(sjmisc)
+  require(gridExtra)  
+  
+  require(lme4)
+  require(lmerTest)  
+  require(emmeans)
+  
+  require(MatchIt) #sample matching
+  
+  require(R.matlab) #read AOI data from matlab files
+  require(reshape2) #melt
+  
+})
+
+
 
 ```
+
 
 # combine data 
 ## merge raw data 
@@ -43,13 +90,6 @@ merged_raw_data<-'/home/nico/Documents/EUAIMS_merged/' #combined oculomotor func
   - data version 1&2 and demographics: n = 556  
 
 ```{r merge_raw_data}
-
-#required packages
-require(parallel) #parallel processing
-#require(nlme) #linear mixed models (lme)
-#require(ggeffects) #predicted marginalized means
-#require(ggplot2)
-require(zoo) #na.approx in pd.preprocess.func
 
 #CSV data V1 - fixation identification data but fewer cases
     #EVENT DETECTION by GraFIX has been applied
@@ -189,9 +229,6 @@ print(paste('saved:',analyzed.movie))
 
 ### SETUP ####
 
-#packages
-require(readbitmap) #read image data
-require(gtools) #sort file paths alphanumerically - mixedsort
 
 #GET PATHS OF ET and SALIENCE DATA
 #et_paths<-"C:/Users/Nico/PowerFolders/project_video_salience/et_data/"
@@ -336,13 +373,6 @@ mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_d
 ### SETUP ####
 
 #packages
-require(readbitmap) #read image data
-require(gtools) #sort file paths alphanumerically - mixedsort
-
-#check for OS --> define home path (script independent of OS)
-ifelse(Sys.info()['sysname']=='Linux',
-       home_path<-'~',
-       home_path<-'C:/Users/Nico')
 
 
 # GET PATHS OF ET and SALIENCE DATA ####
@@ -467,7 +497,6 @@ mapply(func_match_et_and_salience,et_data=et_data_paths,salience_data=salience_d
 
 
   
-
 # preprocessing  
 
 - is currently only displayed for motion salience
@@ -760,7 +789,6 @@ df_sac$rpd<-df_sac$pd/df_sac$tpd
 # ###---> SAVE RAW ####
 # save(df_fix,df_sac,id_levels,vid_id_levels,file=paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata",sep=''))
 
-#load raw data
 
 load(paste0(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata"))
 
@@ -782,8 +810,6 @@ hist(nobs_sac)
 
 ```
 
-
-
 ## add area-of-interest data
 
 - area-of-interest (AOI) data is only available for 50faces, musicbooth, dollhouse video clips (human social videos)
@@ -795,7 +821,7 @@ hist(nobs_sac)
 
 ```{r add_aoi_data}
 
-### ADD AOI data (only available for 50faces, musicbooth, dollhouse - 15.12.20) ####
+### ADD AOI data (only available for 50faces, musicbooth, dollhouse - 15.12.20 --> social vids) ####
 
 ###read AOI data 
 ###--> AOI data available for dollhouse: n=487 participants, 50faces:  n= 653, musicbooth: n=451
@@ -907,12 +933,83 @@ df_fix<-dplyr::bind_rows(df_fix,df_fix_aoi)
 ###--> save RAW AOI fixation data with salience data
 save(df_fix,file=paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata",sep=''))
 
-# #merged raw data
-#load(paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_raw_211020.Rdata",sep='')) 
-# #AOI data merged to salience fixation data (df_fix)
-#load(paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata",sep=''))
+```
+
+## load intermediate date ###
+```{r load intermediate data, eval=TRUE}
+# #AOI data merged to salience FIXATION data with AOI information (df_fix)
+load(paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_AOI_merged_raw_151220.Rdata",sep=''))
+```
+
+
+## add lag to the pupillary response data ##
+
+```{r add a lag to pupillary response}
+
+##for fixation dataset
+
+#split data set
+df_fix_split<-split(df_fix, interaction(df_fix$id,df_fix$vid.id))
+select_df_with_data<-lapply(df_fix_split,function(x){nrow(x)>0})
+
+#remove dfs without data
+df_fix_split<-df_fix_split[select_df_with_data==TRUE]
+
+#function to find a subsequent pupil size that is at least the defined lag in the future
+func_rpd_lag<-function(x,lag=200){
+  for(i in 1:nrow(x)){
+    lookup<-which(x$ts.local>=x$ts.local[i]+lag & x$ts.local<=x$ts.local[i]+(2*lag))[1]
+    ifelse(is.na(lookup),
+          x$rpd_lag[i]<-x$rpd[i],
+          x$rpd_lag[i]<-x$rpd[lookup])}
+    return(x)
+}
+
+#apply function 
+df_fix_split<-lapply(df_fix_split,func_rpd_lag) #takes quite long
+df_fix<-do.call(rbind,df_fix_split)
+
+##for saccade dataset
+
+#split data set
+df_sac_split<-split(df_sac, interaction(df_sac$id,df_sac$vid.id))
+select_df_with_data<-lapply(df_sac_split,function(x){nrow(x)>0})
+
+#remove dfs without data
+df_sac_split<-df_sac_split[select_df_with_data==TRUE]
+
+#function to find a subsequent pupil size that is at least the defined lag in the future
+func_rpd_lag<-function(x,lag=200){
+  for(i in 1:nrow(x)){
+    lookup<-which(x$ts.local>=x$ts.local[i]+lag & x$ts.local<=x$ts.local[i]+(2*lag))[1]
+    ifelse(is.na(lookup),
+          x$rpd_lag[i]<-x$rpd[i],
+          x$rpd_lag[i]<-x$rpd[lookup])}
+    return(x)
+}
+
+# test<-df_fix_split[[100]]
+# test2<-func_rpd_lag(test)
+# table(sapply(df_fix_split,function(x){nrow(x)<1}))
+
+#apply function 
+df_sac_split<-lapply(df_sac_split,func_rpd_lag) #takes quite long
+df_sac<-do.call(rbind,df_sac_split)
+
+#save added rpd_lag in df_fix and df_sac
+save(df_fix,df_sac,file=paste(home_path,"/PowerFolders/data_LEAP/lagged_rpd_310522.Rdata",sep=''))
+rm(df_fix_split,df_sac_split,select_df_with_data)
 
 ```
+
+### load intermediate data
+```{r also load added rpd_load, eval=TRUE}
+
+# #AOI data merged to salience fixation data (df_fix)
+load(paste(home_path,"/PowerFolders/data_LEAP/lagged_rpd_310522.Rdata",sep=''))
+
+```
+
 
 ## aggregate data by fixation/saccades
 
@@ -942,14 +1039,12 @@ levels(df_fix$id)<-id_levels
 df_fix$vid.id<-as.factor(df_fix$vid.id)
 levels(df_fix$vid.id)<-vid_id_levels
 
-###-->several missings in saccade_velocity metrics
-
 ```
 
 ## calculate additional variables
 
-- currently not used in analysis
 - center deviation, relative salience, log-transformed salience
+- currently not used in analysis: relative salience, log-transformed salience
 
 ```{r caluclate_additional_vars}
 
@@ -1101,14 +1196,14 @@ df_fix<-merge(df_fix,df_quality,by.x='id',by.y='ParticipantID')
 
 ```
 
-
 ## add scenes data
 
 ```{r add_scenes_data}
 ## ADD scenes data (incl. ts.scene) ####
 
+
 #scenes are defined by visual inspection of videos (camera change/cut == new scene)
-df_scenes<-read.csv(paste(home_path,"/PowerFolders/project_video_salience/video_stimuli_scenes.csv",sep=''),header=T,sep=';')
+df_scenes<-read.csv(paste(home_path,"/PowerFolders/project_video_salience/data/video_stimuli_scenes.csv",sep=''),header=T,sep=';')
 
 # fps<-25 #standard for all videos? --> no: artist, musicbooth, dollhouse with 24fps 
 # if(vid_name %in% c('artist','musicbooth','dollhouse')){fps<-24}
@@ -1186,6 +1281,8 @@ df_character_agg<-unique(df_character)
 df_agg<-merge(df_numeric_agg,df_character_agg,by='id')
 df_agg<-df_agg[,!names(df_agg) %in% c('ts.scene.x','ts.scene.y')]
 
+
+
 ###-->n=544
 
 ## OUTLIER exclusion of aggregated DF #
@@ -1209,7 +1306,7 @@ df_agg$rpd<-ifelse(df_agg$rpd<0.9,NA,df_agg$rpd)
 
 ```{r save_preprocessed_data}
 
-save(df_agg,df_scenes,df_fix,df_sac,file=paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_151220.Rdata",sep=''))
+save(df_agg,df_scenes,df_fix,df_sac,file=paste(home_path,"/PowerFolders/data_LEAP/gaze_motionsalience_aggregate_merged_020622.Rdata",sep=''))
 
 ```
 

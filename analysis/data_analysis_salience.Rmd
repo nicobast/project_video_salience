@@ -1,60 +1,88 @@
 ---
 title: "data_analysis_salience"
 author: "Nico Bast"
-date: "13 9 2021"
+date: "21 6 2022"
 output: html_document
+bibliography: packages.bib
+csl: vancouver-brackets.csl
 ---
+
+# setup
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(cache = TRUE) #during development
-knitr::opts_chunk$set(autodep = TRUE)
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+#chunk behavior ----
 
+knitr::opts_chunk$set(cache = TRUE) #during development
+knitr::opts_chunk$set(autodep = TRUE) 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 knitr::opts_chunk$set(echo = FALSE)
 
+#required packages ----
+  
+  #install required packages
+  list.of.packages <- c('readxl','zoo','mice','Gmisc',
+                        'MatchIt','R.matlab','reshape2',
+                        'ggplot2','sjPlot','sjmisc','gridExtra','kableExtra','hexbin','grid',
+                        'readbitmap','gtools','readr','RColorBrewer','smoothie',
+                        'lme4','lmerTest','emmeans','MuMIn','lavaan','psych','missMDA','simr',
+                        'rcrossref')
+
+  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+  if(length(new.packages)) install.packages(new.packages)
+
+  #load packages 
+      suppressMessages({
+      
+      require(readxl) #load data
+      require(zoo) #pd preprocessing - na.approx
+      require(mice) #imputation 
+      require(Gmisc) #fastdo.call
+        
+      require(MatchIt) #sample matching
+      require(R.matlab) #read matlba files
+      require(reshape2) #melt
+      
+      #visualization
+      require(ggplot2)
+      require(sjPlot) #plotting lmer
+      require(sjmisc)
+      require(gridExtra)#combine plots
+      require(kableExtra) #nice tables
+      require(hexbin) # gaze location heatmaps
+      require(grid)   #textgrob in grid arrange #draw arrow
+      
+      #salience + luminance information  
+      require(readbitmap) #read image data
+      require(gtools) #sort file paths alphanumerically - mixedsort
+      require(readr) #parse_number
+      require(RColorBrewer) #color palettes
+        
+      #blur of luminance data  
+      require(smoothie) #2dsmooth
+    
+      #models  
+      require(lme4) #linear mixed models
+      require(lmerTest) #p-values in model summary 
+      require(emmeans) #estimated marginalized means
+      require(MuMIn) #estimate LMM effect size
+      require(lavaan) #Confirmatory factor analysis --> test model fit : fit.measures
+          
+        
+      require(psych) #PCA analysis (principal function)  
+      require(missMDA) #impute data in CFA
+      require(simr) #power analysis
+        
+      require(rcrossref) #citation as text 
+        
+      })
+  
+  #cite all applied packages in reference section
+  knitr::write_bib(c(.packages()), "packages.bib")
 
   
-  suppressMessages({
+#GFX -----  
   
-  require(readxl) #load data
-  require(zoo) #pd preprocessing - na.approx
-  require(mice) #imputation 
-  require(Gmisc) #fastdo.call
-    
-  require(MatchIt) #sample matching
-  require(R.matlab) 
-  require(reshape2) #melt
-  
-    #visualization
-  require(ggplot2)
-  require(sjPlot) #plotting lmer
-  require(sjmisc)
-  require(gridExtra)#combine plots
-  require(kableExtra) #nice tables
-  require(hexbin) # gaze location heatmaps
-  require(grid)   #textgrob in grid arrange
-  #require(magick) #table formatting with kable_extra   
-  
-    #salience information  
-  require(readbitmap) #read image data
-  require(gtools) #sort file paths alphanumerically - mixedsort
-  require(readr) #parse_number
-  require(RColorBrewer) #color palettes
-
-   #models  
-  require(lme4)
-  require(lmerTest)  
-  require(emmeans)
-  require(MuMIn) #estimate LMM effect size 
-    
-  require(psych) #PCA analysis (principal function)  
-  require(missMDA) #impute data in CFA
-  
-  require(simr) #power analysis
-    
-  })
-    
   #graphic parameters
   theme_set(theme_bw())
   
@@ -63,24 +91,51 @@ knitr::opts_chunk$set(echo = FALSE)
   custom_group_colors <- c(brewer.pal(3, "Dark2")[3],brewer.pal(4, "Dark2")[4])
   custom_pupillary_component_colors <- c(brewer.pal(3, "Set1")[1],brewer.pal(3, "Set1")[2])
   
+#PATHS ----  
+  
   #check for OS --> define home path (script independent of OS)
   ifelse(Sys.info()['sysname']=='Linux',
          home_path<-'~',
          home_path<-'C:/Users/Nico')
+  
+  #project path
+  project_path<-'/PowerFolders/project_video_salience'
+  
+  #location of RGB frames of scenes
+  rgb_paths<-paste0(home_path,project_path,"/output/stimuli_pics/")
+  rgb_data_paths<-list.files(path=rgb_paths, full.names=T)
+  rgb_data_names<-list.files(path=rgb_paths)
+  
+  
+  ## define function p-correction
+  number_of_variables<-3
+    
+    summary_coef_padj<-function(x){
+      model_summary<-round(data.frame(anova(x))[,-2],3) #apply Satterthwaites (SUM SQ3)   
+      model_summary$p_adj<-sapply(as.list(model_summary$Pr..F.)
+                                    ,function(x){round(p.adjust(x,'fdr',number_of_variables),3)})
+      names(model_summary)<-c('Sum Sq','df1','df2','F','p','p_adj')
+      model_summary
+    }
+  
+    
 ```
+
+# load data
 
 ```{r load_preprocessed_data}
 
 ##load preprocessed data (see python salience extraction, preprocessing1-3) ####
   path_to_external_data<-"/PowerFolders/data_LEAP"
-  load(file=paste0(home_path,path_to_external_data,"/gaze_motionsalience_aggregate_merged_151220.Rdata"))
+  #load(file=paste0(home_path,path_to_external_data,"/gaze_motionsalience_aggregate_merged_151220.Rdata"))
+  load(file=paste0(home_path,path_to_external_data,"/gaze_motionsalience_aggregate_merged_020622.Rdata"))
 
+  
 ```
 
 # data merging
 
-fixation data and saccade data was previously preprocessed as separate files. These are now merged by saccade before a fixation.
-motion salience data is also merged with perceptual salience data
+fixation data and saccade data was previously preprocessed as separate files. These are now merged by saccade before a fixation. motion salience data is also merged with perceptual salience data
 
 ```{r merge_saccade_fixation_data}
 
@@ -107,6 +162,7 @@ motion salience data is also merged with perceptual salience data
     df<-df[ts_diff<1000 & ts_diff>(-1000),]
   
 ```
+
 
 ```{r merge_motion_and_perceptual_salience_data}
 
@@ -227,7 +283,6 @@ match groups based on initial group differences
 ```
 
 # additional information
-
 ## define age groups
 
 no differences occured between age groups on key demographic variables
@@ -317,7 +372,8 @@ variable is used in CFA
 ## CLEAN UP ENVIRONMENT ####
       rm(list=setdiff(ls(), c('df','df_agg','df_sample','df_fix','df_sac','df_scenes',
                               'custom_video_category_colors','custom_group_colors',
-                              'custom_pupillary_component_colors','home_path')))
+                              'custom_pupillary_component_colors',
+                              'home_path','project_path')))
 
 ```
 
@@ -387,6 +443,7 @@ calcualte additional required variables. scaling of variables
   df_model$saccade_duration_z<-scale(df_model$saccade_duration)
   df_model$saccade_velocity_average_z<-scale(df_model$saccade_velocity_average)
   df_model$rpd_z<-scale(df_model$rpd)
+  #df_model$rpd_lag_z<-scale(df_model$rpd_lag) #was already scaled in preprocessing
   #df_model$rpd2_z<-scale(df_model$rpd2)
   df_model$rpd3_z<-scale(df_model$rpd3)
   
@@ -450,6 +507,8 @@ calcualte additional required variables. scaling of variables
 
 ### PCA of pupillary progression ####
     
+
+    # define data for PCA####
     df_pca<-df_model[,c('id','vid_scene','ts.scene','rpd','rpd3')]
     df_pca$ts.scene_rounded<-round(df_pca$ts.scene/100) #round to milliseconds
     PCAdata<-reshape2::dcast(df_pca,formula = id~ts.scene_rounded, fun.aggregate = median, na.rm=T, value.var ='rpd3')
@@ -458,6 +517,52 @@ calcualte additional required variables. scaling of variables
     #impute missing data
     PCAdata<-imputePCA(PCAdata[,2:length(names(PCAdata))],ncp=2) #impute by expected PCA components (missMDA package)
 
+    
+    #test fits of different models####
+    
+    CFA_data<-data.frame(PCAdata)
+    names(CFA_data)<-paste0('x',1:ncol(CFA_data))
+
+     one_factors<-'generic1=~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50'
+        
+    two_factors<-'sensory=~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+
+    x18+x19+x20+x21+x22+x23+x24+x25  
+    semantic=~x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+
+    x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50'
+
+    three_factors<-'
+        generic1=~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17
+        generic2=~x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34
+        generic3=~x35+x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50'
+    
+
+    cfa_model_two<-cfa(two_factors,data = CFA_data, std.lv=T) 
+    cfa_model_one<-cfa(one_factors,data = CFA_data, std.lv=T) 
+    cfa_model_three<-cfa(three_factors,data = CFA_data, std.lv=T)
+    #fixed latent variable variances --> first indicator loadings can vary
+
+    
+    anova(cfa_model_one,cfa_model_two,cfa_model_three)
+    
+    model_comparison<-rbind(
+      round(fitmeasures(cfa_model_one)[c('df','cfi','rmsea','rmsea.ci.lower','rmsea.ci.upper')],3),
+      round(fitmeasures(cfa_model_two)[c('df','cfi','rmsea','rmsea.ci.lower','rmsea.ci.upper')],3),
+      round(fitmeasures(cfa_model_three)[c('df','cfi','rmsea','rmsea.ci.lower','rmsea.ci.upper')],3)) 
+  row_names<-c('one component','two components','three components')
+  model_comparison<-cbind(row_names,model_comparison)
+  
+  table_model_fit<-model_comparison %>%
+    kbl(caption = "Comparison of model fits: pupillary components",
+        col.names = c('model','df','CFI','RMSEA','RMSEA CI-2.5%','RMSEA CI-97.5%'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_fit
+  
+  save_kable(table_model_fit, file= 'manuscript/supplements/table_componentfitcomparison.html')
+    
+    
+    #use 2 component model ####
     PCAmodel<-principal(data.frame(PCAdata['completeObs']),nfactors = 2,rotate='varimax') 
     plot(PCAmodel$loadings[,1])
     plot(PCAmodel$loadings[,2]) 
@@ -502,7 +607,8 @@ g3<-ggplot(df_model,aes(x=ts.scene,y=rpd_RC2))+geom_smooth(se=F,method='lm', for
     
   grid.arrange(g1,g2,g3,ncol=3, bottom ='scene duration (ms)')      
     
-  dev.off()          
+  dev.off()   
+  
 ```
 
 # RESULTS
@@ -592,6 +698,15 @@ grid.arrange(
 
 dev.off()
 
+#plot in markdown
+grid.arrange(
+  arrangeGrob(gg_list[[7]],gg_list[[8]],gg_list[[1]],
+              gg_list[[2]],gg_list[[5]],ncol=1,
+              top=textGrob("non-human videos", gp=gpar(fontsize=16,font=1))),
+  arrangeGrob(gg_list[[3]],gg_list[[4]],gg_list[[6]],
+              gg_list[[9]],mylegend,ncol=1,
+              top=textGrob("human videos", gp=gpar(fontsize=16,font=1))),
+  ncol=2)
 
 ```
 
@@ -612,7 +727,14 @@ tiff(file="manuscript/supplements/figure_pupilsize.tiff", # create a file in tif
  
  dev.off()
 
-
+#plot in markdown
+ ggplot(df_model,aes(x=ts.scene,y=pd,group=interaction(t1_diagnosis,vid_social),color=t1_diagnosis,lty=vid_social))+
+  geom_smooth()+
+  scale_linetype_discrete(name='video category',labels=c('non-human','human'))+
+  scale_color_discrete(name='group',labels=c('ASD','TD'))+
+  ylab('pupil size (mm)')+
+  xlab('scene duration (ms)')
+ 
 ```
 
 
@@ -663,13 +785,13 @@ tiff(file="manuscript/supplements/figure_pupilsize.tiff", # create a file in tif
 ```
 
 
-### salience estimation 
+### global salience estimation 
 
 - perceptual and motion salience is calculated and saved to file, will not be evaluated on knit
 
 ```{r estimate_perceptual_and_motion_salience, eval=F}
 #salience data paths####
-salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_salience/")
+salience_paths<-paste0(home_path,project_path,"/output/stimuli_salience/")
 salience_data_paths<-list.files(path=salience_paths, full.names=T)
 salience_data_names<-list.files(path=salience_paths)
 
@@ -711,7 +833,7 @@ save(salience,file='data/perceptual_salience.Rdata')
 
 ## READ motion salience and extract mean over time ####
         
-salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/motion_salience/")
+salience_paths<-paste0(home_path,project_path,"/output/motion_salience/")
 salience_data_paths<-list.files(path=salience_paths, full.names=T)
 salience_data_names<-list.files(path=salience_paths)
 
@@ -760,8 +882,8 @@ save(motion_salience,file='data/motion_salience.Rdata')
 ##create data frame from salience data
 
 ### data frame - perceptual salience 
-load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/perceptual_salience.Rdata'))
-salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_salience/")
+load(file=paste0(home_path,project_path,'/data/perceptual_salience.Rdata'))
+salience_paths<-paste0(home_path,project_path,"/output/stimuli_salience/")
 salience_data_paths<-list.files(path=salience_paths, full.names=T)
 all_img_paths<-list.files(salience_data_paths, full.names = T)
 all_img_paths<-mixedsort(all_img_paths) #sort file list
@@ -777,7 +899,7 @@ perceptual_salience_movie_name<-rep(names(salience),sapply(salience,length))
 df_perceptual_salience<-data.frame(unlist(salience),frame_number,perceptual_salience_movie_name) 
 
 #data frame - motion salience
-load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/motion_salience.Rdata'))
+load(file=paste0(home_path,project_path,'/data/motion_salience.Rdata'))
 value<-unlist(motion_salience)
 sequence<-rep(names(motion_salience),sapply(motion_salience,length))
 frame<-unlist(sapply(motion_salience,seq_along))
@@ -795,7 +917,7 @@ df_motion_salience$frame_number<-unlist(sapply(as.list(table(df_motion_salience$
 
 df_motion_salience$movie_name<-as.factor(df_motion_salience$movie_name)
 
-salience_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/motion_salience/")
+salience_paths<-paste0(home_path,project_path,"/output/motion_salience/")
 salience_data_paths<-list.files(path=salience_paths, full.names=T)
 salience_data_names<-list.files(path=salience_paths)
 levels(df_motion_salience$movie_name)<-salience_data_names
@@ -819,7 +941,7 @@ with(df_salience_metrics,cor(motion_salience,perceptual_salience,use='pairwise.c
 ```
 
 
-### luminance estimation 
+### global luminance estimation 
 
 based on this [conversion](https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color)
 
@@ -832,7 +954,7 @@ NOTE: use of for loop which is very slow (>1 hour) but does not overflow memory
 ```{r luminance_caluclation, eval=F}
 
 #load RGB images
-rgb_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_pics/")
+rgb_paths<-paste0(home_path,project_path,"/output/stimuli_pics/")
 rgb_data_paths<-list.files(path=rgb_paths, full.names=T)
 rgb_data_names<-list.files(path=rgb_paths)
 
@@ -875,8 +997,8 @@ save(luminance_data,file= 'data/luminance_data.Rdata')
 ```{r luminance_data_frame}
 
 #create luminance data frame
-load(file=paste0(home_path,'/PowerFolders/project_video_salience/data/luminance_data.Rdata'))
-rgb_paths<-paste0(home_path,"/PowerFolders/project_video_salience/output/stimuli_pics/")
+load(file=paste0(home_path,project_path,'/data/luminance_data.Rdata'))
+rgb_paths<-paste0(home_path,project_path,"/output/stimuli_pics/")
 rgb_data_paths<-list.files(path=rgb_paths, full.names=T)
 all_img_paths<-list.files(rgb_data_paths, full.names = T)
 all_img_paths<-mixedsort(all_img_paths) #sort file list
@@ -901,9 +1023,9 @@ names(df_salience_metrics)<-c('merger_id','motion_salience_totalframe','sequence
 
 ```
 
-### compare salience and luminance on frame level
+### compare salience and luminance on per-frame level
 
-```{r plot_salience_luminace_figure}
+```{r plot_global_salience_luminace_figure}
 
 ##-->plot figure (comparison of salience between video categories)####
 
@@ -989,9 +1111,9 @@ cor.test(df_salience_metrics$luminance,df_salience_metrics$perceptual_salience_t
 
 ```
 
-### add luminance and (overall) salience to the main data frame (df_model)
+### add global luminance and global (overall) salience to the main data frame (df_model)
 
-```{r add_luminance_and_salience_to_main_data}
+```{r add_gloabal_luminance_and_global_salience_to_main_data}
 
 ### -->  prepare salience and luminance DF
 ##interpolate frame to millisecond
@@ -1021,26 +1143,155 @@ rm(df_salience_interpolated)
 
 ```
 
-### pupillary response by luminance and (overall) salience
+### local luminance of fixated pixel
 
-```{r pupillary_response_by_salience}
+- applies blur algorithm to luminance data, so that fixated pixel takes surrounding into acount
+- maps fixations to luminance data
 
-# #frame-based salience on pupillary response
-#   lmm_model_pr_all<-lmer(scale(rpd_z)~(scale(luminance)+scale(motion_salience_totalframe)+scale(perceptual_salience_totalframe))*
-#                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
-#                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-#                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-#                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
-#                     (1|id)+(1|vid_scene),data=df_model)   #random effects
-# 
-#   lmm_model_pr_all<-lmer(scale(rpd_z)~(scale(luminance)+scale(motion_salience_z)+scale(lowlvl_salience_z))*
-#                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
-#                     t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-#                     scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-#                     scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
-#                     (1|id)+(1|vid_scene),data=df_model)   #random effects
-# 
-#   summary_coef_padj(lmm_model_pr_all)
+
+```{r local_luminance_of-fixated_pixel, eval=F}
+
+# READ rgb data over time and estimate luminance ####
+
+#NOTE: use of for loop which is very slow (>1 hour) but does not overflow memory
+#loop across all videos 
+#for (i in 1:length(rgb_data_paths)){
+for (i in 1:length(rgb_data_paths)){
+  all_img_of_one_video<-list.files(rgb_data_paths[i], full.names = T)
+  all_img_of_one_video<-mixedsort(all_img_of_one_video) #sort file list
+  
+  #reduce file size of musicbooth (first ~12 seconds of video == 2 relevant scenes)
+  if(rgb_data_names[i]=='musicbooth'){all_img_of_one_video<-all_img_of_one_video[1:300]}
+  
+  #loop across all images of a video
+  luminance_data_of_one_video<-as.list(0)
+  for(j in 1:length(all_img_of_one_video)){
+    #read one image
+    rgb_data<-read.bitmap(all_img_of_one_video[j])
+    #step2 - convert relative values to a linear value (RGB values are gamma-encoded with a power curve):
+    rgb_linear_values<-ifelse(rgb_data<=0.04045,
+                              rgb_data/12.92,
+                              ((rgb_data+0.055)/1.055)^2.4) #predefined formula
+    #step3 - caculate LUMINANCE by sRGB coefficient:
+    luminance_image<-(rgb_linear_values[,,1]*0.2126)+(rgb_linear_values[,,2]*0.7152)+(rgb_linear_values[,,3]*0.0722)
+    #mean luminance of an image:
+    print(paste0('video: ',i,' image: ',j))
+    luminance_data_of_one_video[[j]]<-luminance_image #complete information
+    
+  }
+  
+  #split for each video to prevent memory overflow
+  save(luminance_data_of_one_video,file=paste0(path_luminance_data,rgb_data_names[i]))
+  rm(luminance_data_of_one_video)
+}
+
+
+#load df_model data - for testing
+#load(paste0(home_path,"\PowerFolders\project_video_salience\data\test_luminance.Rdata"))
+
+# PREPROCESS local luminance + MERGE local luminance to gaze data ####
+
+#function -- identify luminance of fixated stimulus
+func_find_local_luminance<-function(x,x_axis,y_axis){
+  lookup_frame<-luminance_data[[x]]
+  local_luminance<-lookup_frame[round(x_axis*width_of_frame),round(y_axis*height_of_frame)]
+  return(local_luminance)
+}
+
+#split data frame by video -- apply loop to each video
+df_model_split<-split(df_model,df_model$vid.id) 
+
+for(i in rgb_data_names){
+
+  which_video<-i
+  
+  ## preprocess luminance image matrix ####
+  
+  #reload data - saved per video in chunk above
+  tmp<-new.env()
+  #load(paste0("E:/luminance_data/",which_video),envir = tmp) 
+  load(paste0(path_luminance_data,which_video),envir = tmp) 
+  luminance_data<-tmp$luminance_data_of_one_video
+  rm(tmp)
+  
+  #define a smooth filter with 1/10 of image size with sigma = 10
+  gauss_smooth<-kernel2dmeitsjer(type='gauss',sigma=10, nx=dim(luminance_data[[1]])[2]/10, ny=dim(luminance_data[[1]])[1]/10)
+  
+    fun_transpose_smooth<-function(x,applied_kernel=gauss_smooth){
+    
+    #print('processeing...')
+    one_frame<-x
+    one_frame<-t(one_frame) #transpose as luminance calculation may have changed orientation
+    # #TODO: REACTIVATE after testing
+    one_frame<-kernel2dsmooth(one_frame,K=gauss_smooth) #the filtering ensures that local luminance is also influenced by surrounding pixel
+    
+  }
+  
+  luminance_data<-lapply(luminance_data,fun_transpose_smooth)
+  
+  #save(test,df_model,file=paste0(home_path,project_path,'/output/test_luminance.Rdata'))
+  #luminance_data<-test
+  
+  print(paste0('preprocessing of luminance data done for: ',which_video))
+  
+  ###MERGE luminance with gaze behavior ###
+  
+    #for(i in rgb_data_names){}
+        
+      #write loop that looks up luminance separately for each video 
+      #requires to load luminance data for every video
+      
+    df_model_thisvideo<-df_model_split[[which_video]]
+    
+    #specific to each video
+    fps<-ifelse(which_video %in% c('artist','musicbooth','dollhouse'),24,25)
+    ms_per_frame<-1000/fps
+    ts_local_luminance_onset<-(0:(length(luminance_data)-1))*ms_per_frame
+    ts_local_luminance_offset<-ts_local_luminance_onset+ms_per_frame
+    width_of_frame<-dim(luminance_data[[1]])[1]
+    height_of_frame<-dim(luminance_data[[1]])[2]
+    
+      #finds frame, where the according luminance of fixated stimulus is 
+      frame_identifier<-sapply(df_model_thisvideo$ts.local,function(x){which(ts_local_luminance_onset<x & ts_local_luminance_offset>=x)[1]})
+      
+      #for testing --> no missings    
+      #frame_identifier<-ifelse(is.na(frame_identifier),1,frame_identifier)
+      
+      local_luminance<-mapply(func_find_local_luminance,x=frame_identifier,x_axis=df_model_thisvideo$fixation_x,y_axis=df_model_thisvideo$fixation_y)
+      #local_luminance<-unlist(local_luminance) #wrong nrow - where did we lose somehing
+      
+      #add data to split df
+      df_model_thisvideo$local_luminance<-local_luminance
+      df_model_split[[which_video]]<-df_model_thisvideo
+      
+      print(paste0('estimated fixated luminance for: ',which_video))
+      
+      
+}    
+
+#test whether it worked
+#sapply(df_model_split,ncol)
+
+#unsplit
+df_model<-do.call(rbind,df_model_split)
+
+#remove intermediate data
+rm(df_model_split)
+
+#save to data
+save(df_model,file=paste0(home_path,project_path,"/data/df_model_luminance_test.Rdata"))
+
+```
+
+### load local luminance data
+
+```{r load_local_luminance, cache=F}
+
+#placeholder --> load data from luminance_per_fixated_pixel.R
+load(paste0(home_path,project_path,"/data/df_model_luminance_test.Rdata"))
+
+#local luminance is moderately correlated with global luminance
+with(df_model[!is.na(df_model$luminance),],cor(luminance,local_luminance))
 
 ```
 
@@ -1185,7 +1436,7 @@ rm(df_salience_interpolated)
 
 ```{r progression_of_key_variables}
 
-g1<-ggplot(df_model,aes(x=ts.scene,y=rpd_z,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
+g1<-ggplot(df_model,aes(x=ts.scene,y=rpd_lag,group=t1_diagnosis,color=t1_diagnosis,fill=t1_diagnosis))+
   geom_smooth(method='lm', formula = y ~ x + poly(x,3))+
   theme(axis.title.y = element_blank(),axis.title.x = element_blank())+
   ggtitle('pupillary response')+ 
@@ -1247,29 +1498,34 @@ dev.off() #close operation and save file
 
 ```
 
-## main analyses
+
+# MAIN ANALYSES
 ### sensory salience
 
 ```{r results_physical_salience}
 
  #all vids - lowlvl salience (spectral residual)
-  lmm_model_lowlvl<-lmer(scale(lowlvl_salience)~t1_diagnosis*(rpd_z)*vid_social*
-                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
-                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                    (1|id)+(1|vid_scene),data=df_model)   #random effects
-  
+  lmm_model_lowlvl<-lmer(scale(lowlvl_salience)~t1_diagnosis*rpd_lag*vid_social*
+    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
+    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+    scale(Accuracy)+scale(Precision)+scale(centdev)+ #data quality
+      scale(local_luminance)+ #luminance 
+    (1|id)+(1|vid_scene),data=df_model)   #random effects
+    
+
+  #r.squaredGLMM(lmm_model_lowlvl)
+
   #significant effects
   cbind(round(fixef(lmm_model_lowlvl)['vid_socialTRUE'],2),
         round(confint(lmm_model_lowlvl,parm = 'vid_socialTRUE'),2))
   
-  cbind(round(fixef(lmm_model_lowlvl)['rpd_z'],2),
-        round(confint(lmm_model_lowlvl,parm = 'rpd_z'),2))
+  cbind(round(fixef(lmm_model_lowlvl)['rpd_lag'],2),
+        round(confint(lmm_model_lowlvl,parm = 'rpd_lag'),2))
   
   confint(contrast(emmeans(lmm_model_lowlvl,~vid_social),'pairwise'))
   
-  confint(emtrends(lmm_model_lowlvl,~vid_social,var='rpd_z'))
+  confint(emtrends(lmm_model_lowlvl,~vid_social,var='rpd_lag'))
 
   #table model summary
   table_data_model_lowlvl<-summary_coef_padj(lmm_model_lowlvl)
@@ -1296,21 +1552,22 @@ dev.off() #close operation and save file
   table_model_lowlvl
   
   save_kable(table_model_lowlvl, file= 'manuscript/supplements/table_model_physical_salience.html')
-
+  
   
 ```
 
 ```{r results_motion_salience}
 
  #all vids - motion salience (Gaussian)
-  lmm_model_motion<-lmer(motion_salience_z~t1_diagnosis*rpd_z*vid_social*
-                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
-                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                    (1|id)+(1|vid_scene),data=df_model)   #random effects
-  
-  #r.squaredGLMM(lmm_model)
+  lmm_model_motion<-lmer(motion_salience_z~t1_diagnosis*rpd_lag*vid_social*
+    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+    scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+    scale(local_luminance)+ #control for luminance
+    (1|id)+(1|vid_scene),data=df_model)   #random effects
+
+  #r.squaredGLMM(lmm_model_motion)
   #summary(lmm_model)
   
   #table model summary
@@ -1370,7 +1627,7 @@ dev.off() #close operation and save file
 
   #interaction effects
   emtrends(lmm_model_motion,~vid_social+ts.scene,
-           var='rpd_z',
+           var='rpd_lag',
            at=list(ts.scene =c(1000,3000)),
            params='deg')
 
@@ -1380,12 +1637,13 @@ dev.off() #close operation and save file
 
 ```{r results_pupillary_response}
 
-lmm_model_rpd<-lmer(rpd_z~t1_diagnosis*vid_social*
-                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #use I instead of polynomial for later emmeans
-                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                    (1|id)+(1|vid_scene),data=df_model)   #random effects
+lmm_model_rpd<-lmer(scale(rpd_lag)~t1_diagnosis*vid_social*
+  (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ 
+  t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+  scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+  scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+  scale(local_luminance)+ 
+  (1|id)+(1|vid_scene),data=df_model)   #random effects
   
 table_data_model_rpd<-summary_coef_padj(lmm_model_rpd)
   row_names_rpd<-c('group','video category (VC)','time^1','time^2','time^3',
@@ -1451,17 +1709,22 @@ table_data_model_rpd<-summary_coef_padj(lmm_model_rpd)
 
 ### gaze on face (social attention)
 
+```{r define_social_vid_dataset}
+#model without mediators
+lmm_model_data<-df_model[df_model$vid.id %in% c('50faces','dollhouse','musicbooth'),] #social vids
+
+```
+
 ```{r results_social_attention_without}
 
-#model without mediators
-lmm_model_data<-df_model[df_model$vid.id %in% c('50faces','dollhouse','musicbooth'),]
   lmm_model_sa<-lmer(scale(aoi_face)~t1_diagnosis*
-                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
-                    t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                    scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                    scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                    (1|id)+(1|vid_scene), #random effects
-                  data=lmm_model_data)   
+        (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+        scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+        scale(local_luminance)+ #control for luminance
+        (1|id)+(1|vid_scene), #random effects
+      data=lmm_model_data)   
   
 table_data_model_sa<-summary_coef_padj(lmm_model_sa)
 
@@ -1481,43 +1744,112 @@ table_data_model_sa<-cbind(row_names_sa,table_data_model_sa)
   
   table_model_sa
   
-  save_kable(table_model_sa, file= 'manuscript/supplements/table_model_socialattention_without.html')
+  save_kable(table_model_sa, file= 'manuscript/supplements/table_model_socialattention_without_mediators.html')
 
 cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
         round(confint(lmm_model_sa,parm = 't1_diagnosisControl'),2))
   
 #emmeans(lmm_model_sa,~ts.scene,at=list(ts.scene= c(0,1000,2000,3000,4000,5000)))
 
+#CONTROL excluding covariates
+
+lmm_model_sa_empty<-lmer(scale(aoi_face)~t1_diagnosis*
+                    (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+                     
+                    (1|id)+(1|vid_scene), #random effects
+                  data=lmm_model_data)   
+  
+table_data_model_sa_empty<-summary_coef_padj(lmm_model_sa_empty)
+
+row_names_sa_empty<-c('group','time^1','time^2','time^3',
+             'group x time^1','group x time^2','group x time^3')
+
+table_data_model_sa_empty<-cbind(row_names_sa_empty,table_data_model_sa_empty)
+  
+  table_model_sa_empty<-table_data_model_sa_empty %>%
+    kbl(caption = "Linear mixed model: social attention without mediators and covariates",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa_empty
+  
+  save_kable(table_model_sa_empty, file= 'manuscript/supplements/table_model_socialattention_without_mediators_and_covariates.html')
+
+cbind(round(fixef(lmm_model_sa_empty)['t1_diagnosisControl'],2),
+        round(confint(lmm_model_sa_empty,parm = 't1_diagnosisControl'),2))
+
 ```
 
 ```{r results_social_attention_with_salience}
-#inclusion of salience
-   lmm_model_sa_salience<-lmer(scale(aoi_face)~t1_diagnosis*(motion_salience_z+lowlvl_salience_z)*
-                          (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
-                          t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                          scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                          scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                          (1|id)+(1|vid_scene), #random effects
-                        data=lmm_model_data)   
+
+    
+# #difference in physical saliene for aoi_face and non-aoi_face gazes
+# 
+# df_model_aoi<-df_model[df_model$vid.id %in% c('50faces','dollhouse','musicbooth'),] #social vids
+# df_model_aoi$aoi_face<-ifelse(df_model_aoi$aoi_face==0,0,
+#                        ifelse(df_model_aoi$aoi_face==1,1,NA))
+# df_model_aoi$aoi_face<-as.factor(df_model_aoi$aoi_face)
+# 
+# levels(df_model_aoi$aoi_face)<-c('no-face','face')
+# 
+# 
+# lmm_model_sa_aoi_diff<-lmer(scale(lowlvl_salience)~aoi_face*
+#                     (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+#                     (1|id)+(1|vid_scene), #random effects
+#                   data=df_model_aoi)  
+# 
+# table_data_model_sa_aoi_diff<-summary_coef_padj(lmm_model_sa_aoi_diff)
+# 
+# row_names_sa_aoi_diff<-c('face AOI','time^1','time^2','time^3',
+#              'face AOI x time^1','face AOI x time^2','face AOI x time^3')
+# 
+# table_data_model_sa_aoi_diff<-cbind(row_names_sa_aoi_diff,table_data_model_sa_aoi_diff)
+#   
+#   table_model_sa_aoi_diff<-table_data_model_sa_aoi_diff %>%
+#     kbl(caption = "Linear mixed model: Physical salience by face AOI",
+#         col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+#         row.names = F) %>%
+#     kable_classic(full_width = F, html_font = "Cambria")
+#   
+#   table_model_sa_aoi_diff
+#   
+#   save_kable(table_model_sa_aoi_diff, file= 'manuscript/supplements/table_model_socialattention_physicalsalience_by_faceaoi.html')
+# 
+# cbind(round(fixef(lmm_model_sa_aoi_diff)['aoi_faceface'],2),
+#         round(confint(lmm_model_sa_aoi_diff,parm = 'aoi_faceface'),2))
+# 
+# confint(contrast(emmeans(lmm_model_sa_aoi_diff,~aoi_face),'revpairwise'))
+
+  
+  
+#inclusion of physical salience - as only physical salience is also predicted by group (see)
+    lmm_model_sa_salience<-lmer(scale(aoi_face)~t1_diagnosis*lowlvl_salience_z*
+        (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+        scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+        scale(local_luminance)+ 
+        (1|id)+(1|vid_scene), #random effects
+      data=lmm_model_data) 
     
    table_data_model_sa_salience<-summary_coef_padj(lmm_model_sa_salience)
    
-   row_names_sa_salience<-c('group','motion salience (MS)','physical salience (PS)','time^1','time^2','time^3',
+
+   row_names_sa_salience<-c('group','physical salience (PS)','time^1','time^2','time^3',
              'sex','age','perceptual IQ',
              'ADHD inattention','anxiety','depression',
              'accuracy','precision','center deviation','luminance',
-             'group x MS','group x PS',
+             'group x PS',
              'group x time^1','group x time^2','group x time^3',
-             'MS x time^1','MS x time^2','MS x time^3',
              'PS x time^1','PS x time^2','PS x time^3',
-             'group x MS x time^1','group x MS x time^2','group x MS x time^3',
              'group x PS x time^1','group x PS x time^2','group x PS x time^3')
   
     
    table_data_model_sa_salience<-cbind(row_names_sa_salience,table_data_model_sa_salience)
   
   table_model_sa_salience<-table_data_model_sa_salience %>%
-    kbl(caption = "Linear mixed model: social attention with motion salience and physical salience as mediators",
+    kbl(caption = "Linear mixed model: social attention with physical salience as mediator",
         col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
         row.names = F) %>%
     kable_classic(full_width = F, html_font = "Cambria")
@@ -1526,74 +1858,66 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
   
   save_kable(table_model_sa_salience, file= 'manuscript/supplements/table_model_socialattention_with_salience.html')
   
+  
+   #model comparison without and with physical salience
+   anova(lmm_model_sa,lmm_model_sa_salience)
+  
   #effects of salience on social attention
   cbind(round(fixef(lmm_model_sa_salience)['lowlvl_salience_z'],2),
         round(confint(lmm_model_sa_salience,parm = 'lowlvl_salience_z'),2))
   
-  cbind(round(fixef(lmm_model_sa_salience)['motion_salience_z'],2),
-        round(confint(lmm_model_sa_salience,parm = 'motion_salience_z'),2))
+  
+  
+#SECONDARY ANALYSIS  
+#association physical salience predicted by group
+lmm_model_sa_mediator_salience<-lmer(scale(lowlvl_salience)~t1_diagnosis*
+        (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+        scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+        scale(local_luminance)+ #luminance
+        (1|id)+(1|vid_scene), #random effects
+      data=lmm_model_data)   
 
- # #plot interaction - physical salience
- #  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
- #                                             var='lowlvl_salience_z',
- #                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
- #                                             params='deg'))
- #  g_physical<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
- #    geom_hline(yintercept = 0)+
- #    geom_boxplot(aes(middle=lowlvl_salience_z.trend,
- #                     lower=lowlvl_salience_z.trend-SE,
- #                     upper=lowlvl_salience_z.trend+SE,
- #                     ymin=lowlvl_salience_z.trend-2*SE,
- #                     ymax=lowlvl_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
- #    theme_bw()+
- #    ylim(-0.2,0.2)+
- #    xlab('time (ms)')+ylab('effect size (z)')+ggtitle('physical salience')
- #  
- #  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
- #                                             var='motion_salience_z',
- #                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
- #                                             params='deg'))
- #  g_motion<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
- #    geom_hline(yintercept = 0)+
- #    geom_boxplot(aes(middle=motion_salience_z.trend,
- #                     lower=motion_salience_z.trend-SE,
- #                     upper=motion_salience_z.trend+SE,
- #                     ymin=motion_salience_z.trend-2*SE,
- #                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill='#00BFC4')+
- #    theme_bw()+
- #    ylim(-0.2,0.2)+
- #    xlab('time (ms)')+ylab('')+ggtitle('motion salience')+
- #    scale_fill_discrete()
- #  
- #  
- #  #plot to markdown
- #  plot_model<-grid.arrange(g_physical,g_motion,ncol=2)
- #  plot_model
- #  
- #  
- #  tiff(file="manuscript/figures/figure_socialattention_salienceeffects.tiff", # create a file in tiff format
- #  width=9, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
- # 
- #  grid.arrange(g_physical,g_motion,ncol=2)
- #  
- #  dev.off()
+table_data_model_sa_mediator_salience<-summary_coef_padj(lmm_model_sa_mediator_salience)
 
+row_names_sa_mediator_salience<-c('group','time^1','time^2','time^3',
+             'sex','age','perceptual IQ',
+             'ADHD inattention','anxiety','depression',
+             'accuracy','precision','center deviation','luminance',
+             'group x time^1','group x time^2','group x time^3')
+
+table_data_model_mediator_salience<-cbind(row_names_sa_mediator_salience,table_data_model_sa_mediator_salience)
+  
+  table_model_sa_mediator_salience<-table_data_model_mediator_salience %>%
+    kbl(caption = "Linear mixed model: physical salience associated with group",
+        col.names = c('','Sum Sq','df1','df2','F','p','p_adj'),
+        row.names = F) %>%
+    kable_classic(full_width = F, html_font = "Cambria")
+  
+  table_model_sa_mediator_salience
+  
+  save_kable(table_model_sa_mediator_salience, file= 'manuscript/supplements/table_model_socialattention_physicalsalience_by_group.html')
+
+  cbind(round(fixef(lmm_model_sa_mediator_salience)['t1_diagnosisControl'],2),
+        round(confint(lmm_model_sa_mediator_salience,parm = 't1_diagnosisControl'),2))
+  
 ```
 
 ```{r results_social_attention_with_pupillaryresponse}
 
- ####--> add pupillary reactivity  #### 
-    lmm_model_sa_rpd<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_z)*
-                      (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+
-                      t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                      scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                      scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                      (1|id)+(1|vid_scene), #random effects
-                    data=lmm_model_data)   
-              
+####--> add pupillary reactivity  #### 
+    lmm_model_sa_rpd<-lmer(scale(aoi_face)~t1_diagnosis*rpd_lag*                         
+            (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))++
+            t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+            scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+            scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+            scale(local_luminance)+ #luminance
+            (1|id)+(1|vid_scene), #random effects
+            data=lmm_model_data[!is.na(lmm_model_data$rpd_lag),])   
   
     table_data_model_sa_rpd<-summary_coef_padj(lmm_model_sa_rpd)
- 
+    
    row_names_sa_rpd<-c('group','pupillary response (PR)','time^1','time^2','time^3',
              'sex','age','perceptual IQ',
              'ADHD inattention','anxiety','depression',
@@ -1615,23 +1939,41 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
   
   save_kable(table_model_sa_rpd, file= 'manuscript/supplements/table_model_socialattention_with_pupillaryresponse.html')
 
+   #model comparison without and with physical salience
+   lmm_model_sa<-lmer(scale(aoi_face)~t1_diagnosis*
+        (scale(ts.scene)+scale(I(ts.scene^2))+scale(I(ts.scene^3)))+ #temporal progression
+        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+        scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+        scale(local_luminance)+ 
+        (1|id)+(1|vid_scene), #random effects
+      data=lmm_model_data[!is.na(lmm_model_data$rpd_lag),]) 
+
+   anova(lmm_model_sa,lmm_model_sa_rpd)
+  
 
   #significant effects 
-  confint(emtrends(lmm_model_sa_rpd,~t1_diagnosis,var='rpd_z'))
+  confint(emtrends(lmm_model_sa_rpd,~t1_diagnosis,var='rpd_lag'))
   #-->group difference explained by an effect of pupillary response on aoi-face in ASD
   
   
+  # emtrends(lmm_model_sa_rpd,~rpd_lag,var='ts.scene',
+  #          at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+  #          params='deg')
+  # 
+  # 
 ```
 
 ```{r results_social_attention_with_pupillarycomponents}
 
    #--> secondary analysis - is it due to RC1 or RC2?
-        lmm_model_sa_pc<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_RC1_z+rpd_RC2_z)+
-                          t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
-                          scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
-                          scale(Accuracy)+scale(Precision)+scale(centdev)+scale(luminance)+ #control for data quality
-                          (1|id)+(1|vid_scene), #random effects
-                        data=lmm_model_data)   
+  lmm_model_sa_pc<-lmer(scale(aoi_face)~t1_diagnosis*(rpd_RC1_z+rpd_RC2_z)+
+        t1_sex+scale(t1_ageyrs)+scale(t1_piq)+ #control for demographics
+        scale(adhd_inatt)+scale(anx_beck)+scale(dep_beck)+ #control for psychopathology
+        scale(Accuracy)+scale(Precision)+scale(centdev)+ #control for data quality
+        scale(local_luminance)+ #luminance
+        (1|id)+(1|vid_scene), #random effects
+        data=lmm_model_data)   
      
   table_data_model_sa_pc<-summary_coef_padj(lmm_model_sa_pc)
   
@@ -1663,6 +2005,104 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
 
 ```
 
+### panel figure - mediation and moderation
+
+```{r figure_mediation_moderation}
+
+
+  #plot mediation + moderation model
+
+  #direct effect - contrast alters sign  
+  #round(fixef(lmm_model_sa)['t1_diagnosisControl'],2)
+
+  #direct effect
+  g1<-ggplot()+theme_void()+xlim(0.1,0.9)+ylim(0.35,0.75)+
+    #arrow
+    annotate("segment", x = 0.4, xend = 0.6, y = 0.5, yend = 0.5,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    #left textbox
+    annotate("rect", xmin = 0.15, xmax = 0.4, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.27, y=0.5, label='group \n (ASD vs. TD)')+
+    #right textbox
+    annotate("rect", xmin = 0.6, xmax = 0.85, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.73, y=0.5, label='gazes on faces')+
+    #direct effect
+    annotate('text', x=0.5, y=0.48, label='-0.08*')+
+    #panel number
+    annotate('text', x=0.1, y=0.75, size=6, label='A)')
+    
+   #indirect effect - mediation
+  g2<-ggplot()+theme_void()+xlim(0.1,0.9)+ylim(0.35,0.9)+
+    #arrows
+    annotate("segment", x = 0.4, xend = 0.6, y = 0.5, yend = 0.5,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    annotate("segment", x = 0.27, xend = 0.38, y = 0.55, yend = 0.76,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    annotate("segment", x = 0.63, xend = 0.73, y = 0.76, yend = 0.55,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    #left textbox
+    annotate("rect", xmin = 0.15, xmax = 0.4, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.27, y=0.5, label='group \n (ASD vs. TD)')+
+    #right textbox
+    annotate("rect", xmin = 0.6, xmax = 0.85, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.73, y=0.5, label='gazes on faces')+
+    #upper text box - mediator
+    annotate("rect", xmin = 0.38, xmax = 0.63, ymin = 0.71, ymax = 0.82, color ='black', alpha=0)+
+    annotate('text', x=0.505, y=0.77, label='gazes on \n physical salience')+
+    #indirect effect
+    annotate('text', x=0.5, y=0.48, label='n.s')+
+    # other effects
+    annotate('text', x=0.27, y=0.63, label='-0.04*')+
+    annotate('text', x=0.73, y=0.63, label='0.02*')+
+    #panel number
+    annotate('text', x=0.1, y=0.75, size=6, label='B)')
+  
+  
+  #moderation
+  g3<-ggplot()+theme_void()+xlim(0.1,0.9)+ylim(0.35,0.90)+
+    #arrows
+    annotate("segment", x = 0.4, xend = 0.6, y = 0.5, yend = 0.5,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    annotate("segment", x = 0.5, xend = 0.5, y = 0.71, yend = 0.5,
+           colour = "black", size = 1, arrow = arrow(length = unit(0.1,"inches"),type='open'))+
+    #left textbox
+    annotate("rect", xmin = 0.15, xmax = 0.4, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.27, y=0.5, label='group \n (ASD vs. TD)')+
+    #right textbox
+    annotate("rect", xmin = 0.6, xmax = 0.85, ymin = 0.44, ymax = 0.55, color ='black', alpha=0)+
+    annotate('text', x=0.73, y=0.5, label='gazes on faces')+
+    #upper text box - mediator
+    annotate("rect", xmin = 0.38, xmax = 0.63, ymin = 0.71, ymax = 0.82, color ='black', alpha=0)+
+    annotate('text', x=0.505, y=0.77, label='pupillary \n response')+
+    #indirect effect
+    annotate('text', x=0.5, y=0.48, label='n.s')+
+    annotate('text', x=0.6, y=0.64, label='in ASD: -.35*')+
+    annotate('text', x=0.595, y=0.597, label='in TD:    -.11')+
+    #panel number
+    annotate('text', x=0.1, y=0.75, size=6, label='C)')
+  
+  g4<-ggplot()+theme_void()
+  
+  
+  lay <- rbind(c(4,1,1,4),
+               c(2,2,3,3))
+  
+  
+  tiff(file="manuscript/figures/figure_panel_mediation_moderation.tiff", # create a file in tiff format
+  width=10, height=4, units="in", res=300, compression='lzw') #define size and resolution of the resulting figure
+ 
+  grid.arrange(g1,g2,g3,g4,layout_matrix=lay)
+  
+  dev.off()
+  
+  
+  grid.arrange(g1,g2,g3,g4,layout_matrix=lay)
+  
+
+
+```
+
+
 ### panel figure - temporal effects
 
 ```{r results_panelfigure_temporal_effects}
@@ -1670,7 +2110,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
 # - prepare figures ####
 #g1 - effect of pupillary response on motion salience across groups
   model_plot_data<-as.data.frame(emtrends(lmm_model_motion,~vid_social+ts.scene,
-                                             var='rpd_z',
+                                             var='rpd_lag',
                                              at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
                                              params='deg'))
 
@@ -1678,16 +2118,16 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
   g1_motion_salience_interaction<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
     geom_hline(yintercept = 0)+
     geom_boxplot(aes(fill=vid_social,
-                     middle=rpd_z.trend,
-                     lower=rpd_z.trend-SE,
-                     upper=rpd_z.trend+SE,
-                     ymin=rpd_z.trend-2*SE,
-                     ymax=rpd_z.trend+2*SE),stat = "identity")+
+                     middle=rpd_lag.trend,
+                     lower=rpd_lag.trend-SE,
+                     upper=rpd_lag.trend+SE,
+                     ymin=rpd_lag.trend-2*SE,
+                     ymax=rpd_lag.trend+2*SE),stat = "identity")+
     theme_bw()+
     scale_fill_manual(name = "video category", labels = c("non-human", "human"),values = rev(custom_video_category_colors))+
     theme(axis.title.x = element_blank(),axis.title.y = element_blank(),
-          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))+
-    ylim(-0.3,0.25)
+          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))#+
+    #ylim(-0.3,0.25)
   
   ## extract legend
     g_legend<-function(x){
@@ -1700,7 +2140,7 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
   g1_motion_salience_interaction<-g1_motion_salience_interaction+theme(legend.position = 'none')
   
   
-  g1_motion_salience_interaction<-grid.arrange(g1_motion_salience_interaction, top = grid::textGrob("a.) gazes on motion salience by pupillary response", x = 0, hjust = 0))
+  g1_motion_salience_interaction<-grid.arrange(g1_motion_salience_interaction, top = grid::textGrob("a) gazes on motion salience by pupillary response", x = 0, hjust = 0))
   
 #g2 - effect of pupillary response between groups
   
@@ -1719,14 +2159,13 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
     theme_bw()+
     scale_fill_manual(name = "group", labels = c("ASD", "TD"),values = custom_group_colors)+
     theme(axis.title.x = element_blank(),axis.title.y = element_blank(),
-          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))+ 
-    ylim(-0.3,0.25)
+          legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))
   
     #extract legend
     mylegend_pupil<-g_legend(g2_pupillaryresponse) 
     g2_pupillaryresponse<-g2_pupillaryresponse+theme(legend.position = 'none')
   
-  g2_pupillaryresponse<-grid.arrange(g2_pupillaryresponse,top = grid::textGrob("   b.) pupillary response by group", x = 0, hjust = 0))
+  g2_pupillaryresponse<-grid.arrange(g2_pupillaryresponse,top = grid::textGrob("   b) pupillary response by group", x = 0, hjust = 0))
 
 
 #g3 - physical and motion salience on social attention across groups
@@ -1749,25 +2188,27 @@ cbind(round(fixef(lmm_model_sa)['t1_diagnosisControl'],2),
     theme(axis.title.x = element_blank(),axis.title.y = element_blank())
     #ggtitle('physical salience')
   
-  model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
-                                             var='motion_salience_z',
-                                             at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
-                                             params='deg'))
-  g_motion<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
-    geom_hline(yintercept = 0)+
-    geom_boxplot(aes(middle=motion_salience_z.trend,
-                     lower=motion_salience_z.trend-SE,
-                     upper=motion_salience_z.trend+SE,
-                     ymin=motion_salience_z.trend-2*SE,
-                     ymax=motion_salience_z.trend+2*SE),stat = "identity",fill=custom_video_category_colors[1])+
-    theme_bw()+
-    ylim(-0.2,0.2)+
-    theme(axis.title.x = element_blank(),axis.title.y = element_blank())+
-    #ggtitle('motion salience')+
-    scale_fill_discrete()
+  # model_plot_data<-as.data.frame(emtrends(lmm_model_sa_salience,~ts.scene,
+  #                                            var='motion_salience_z',
+  #                                            at=list(ts.scene =c(0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000)),
+  #                                            params='deg'))
+  # g_motion<-ggplot(model_plot_data,aes(x=as.factor(ts.scene)))+
+  #   geom_hline(yintercept = 0)+
+  #   geom_boxplot(aes(middle=motion_salience_z.trend,
+  #                    lower=motion_salience_z.trend-SE,
+  #                    upper=motion_salience_z.trend+SE,
+  #                    ymin=motion_salience_z.trend-2*SE,
+  #                    ymax=motion_salience_z.trend+2*SE),stat = "identity",fill=custom_video_category_colors[1])+
+  #   theme_bw()+
+  #   ylim(-0.2,0.2)+
+  #   theme(axis.title.x = element_blank(),axis.title.y = element_blank())+
+  #   #ggtitle('motion salience')+
+  #   scale_fill_discrete()
+  
+  g_motion <- ggplot() + theme_void()
   
   #plot to markdown
-  g3_social_attention_salience_effects<-grid.arrange(g_physical,g_motion,ncol=2,top = grid::textGrob("    c.) social attention by  physical salience (left) or motion salience (right)", x = 0, hjust = 0))
+  g3_social_attention_salience_effects<-grid.arrange(g_physical,g_motion,ncol=2,top = grid::textGrob("    c) social attention by  physical salience", x = 0, hjust = 0))
 
 
   
